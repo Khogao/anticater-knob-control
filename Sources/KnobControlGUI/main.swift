@@ -144,10 +144,10 @@ private enum ActionTemplate: String, CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .browser: return "Browser"
-        case .coding: return "Code editing"
-        case .media: return "Media control"
+        case .coding: return "Code"
+        case .media: return "Media"
         case .design: return "Design"
-        case .editing: return "Video timeline"
+        case .editing: return "Video"
         }
     }
 
@@ -1594,6 +1594,7 @@ private struct ContentView: View {
                 Text("Edit mode")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.secondary)
+                    .fixedSize()
 
                 Picker("Modifier", selection: $selectedModifierMode) {
                     ForEach(ModifierMode.allCases) { mode in
@@ -1608,79 +1609,113 @@ private struct ContentView: View {
                     .lineLimit(1)
 
                 Spacer(minLength: 0)
+
+                toolMenus
             }
 
-            HStack(spacing: 10) {
-                Text("Quick templates")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
-
-                Picker("Template", selection: $selectedTemplate) {
-                    ForEach(ActionTemplate.allCases) { template in
-                        Text(template.title).tag(template)
+            // One row when it fits, otherwise the buttons wrap onto a second row.
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 10) {
+                    templatePicker
+                    templateButtons
+                    Spacer(minLength: 0)
+                }
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 10) {
+                        templatePicker
+                        Spacer(minLength: 0)
+                    }
+                    HStack(spacing: 10) {
+                        templateButtons
+                        Spacer(minLength: 0)
                     }
                 }
-                .pickerStyle(.segmented)
-                .frame(maxWidth: 360)
-
-                Button("Apply to current profile") {
-                    store.applyTemplate(selectedTemplate, modifierMode: selectedModifierMode)
-                }
-
-                Button("Create for frontmost app and apply") {
-                    store.addCurrentApp(template: selectedTemplate, modifierMode: selectedModifierMode)
-                }
-
-                Menu("Listening tools") {
-                    Button("Restore global volume default") {
-                        store.restoreGlobalMediaDefault()
-                    }
-
-                    Divider()
-
-                    Toggle("Auto-switch by frontmost app", isOn: $knobService.autoSwitch)
-
-                    Button("Release triple-press lock") {
-                        knobService.clearMappingLock(showOverlay: true)
-                    }
-                    .disabled(knobService.autoSwitch || knobService.lockedBundleID == nil)
-
-                    Button("Clear counters") {
-                        knobService.resetInputCounters()
-                    }
-
-                    Button("Volume self-test") {
-                        knobService.testSystemVolume()
-                    }
-
-                    Divider()
-
-                    Button("Copy diagnostic report") {
-                        knobService.copyDebugReport(store: store, frontmost: frontmost)
-                    }
-                }
-
-                Menu("Permissions") {
-                    Button("Request permission") {
-                        knobService.requestInputMonitoringAccess()
-                    }
-
-                    Button("Open Input Monitoring") {
-                        knobService.openInputMonitoringSettings()
-                    }
-
-                    Button("Request Accessibility") {
-                        knobService.requestAccessibilityAccess()
-                    }
-
-                    Button("Open Accessibility") {
-                        knobService.openAccessibilitySettings()
-                    }
-                }
-
-                Spacer(minLength: 0)
             }
         }
+    }
+
+    @ViewBuilder
+    private var templatePicker: some View {
+        Text("Quick templates")
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(.secondary)
+            .fixedSize()
+
+        Picker("Template", selection: $selectedTemplate) {
+            ForEach(ActionTemplate.allCases) { template in
+                Text(template.title).tag(template)
+            }
+        }
+        .pickerStyle(.segmented)
+        .labelsHidden()
+        .fixedSize()
+        .help(selectedTemplate.subtitle)
+    }
+
+    @ViewBuilder
+    private var templateButtons: some View {
+        Button("Apply to current profile") {
+            store.applyTemplate(selectedTemplate, modifierMode: selectedModifierMode)
+        }
+        .fixedSize()
+
+        Button("Create for frontmost app and apply") {
+            store.addCurrentApp(template: selectedTemplate, modifierMode: selectedModifierMode)
+        }
+        .fixedSize()
+    }
+
+    // Sized to their titles; a Menu otherwise stretches across the whole row.
+    @ViewBuilder
+    private var toolMenus: some View {
+        Menu("Listening tools") {
+            Button("Restore global volume default") {
+                store.restoreGlobalMediaDefault()
+            }
+
+            Divider()
+
+            Toggle("Auto-switch by frontmost app", isOn: $knobService.autoSwitch)
+
+            Button("Release triple-press lock") {
+                knobService.clearMappingLock(showOverlay: true)
+            }
+            .disabled(knobService.autoSwitch || knobService.lockedBundleID == nil)
+
+            Button("Clear counters") {
+                knobService.resetInputCounters()
+            }
+
+            Button("Volume self-test") {
+                knobService.testSystemVolume()
+            }
+
+            Divider()
+
+            Button("Copy diagnostic report") {
+                knobService.copyDebugReport(store: store, frontmost: frontmost)
+            }
+        }
+        .fixedSize()
+
+        Menu("Permissions") {
+            Button("Request permission") {
+                knobService.requestInputMonitoringAccess()
+            }
+
+            Button("Open Input Monitoring") {
+                knobService.openInputMonitoringSettings()
+            }
+
+            Button("Request Accessibility") {
+                knobService.requestAccessibilityAccess()
+            }
+
+            Button("Open Accessibility") {
+                knobService.openAccessibilitySettings()
+            }
+        }
+        .fixedSize()
     }
 
     private var editor: some View {
