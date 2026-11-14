@@ -68,6 +68,9 @@ or
 open build/ANTICATERKnobControl.app
 ```
 
+To give the app an icon, put an `.icns` file at `assets/AppIcon.icns` before building.
+The file is ignored by git; no icon ships with this repository.
+
 ## Permissions
 
 The app needs two permissions in System Settings → Privacy & Security:

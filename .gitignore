@@ -16,3 +16,5 @@ DerivedData/
 *.log
 *.tmp
 
+# App icon supplied locally (third-party artwork, not redistributed here)
+assets/AppIcon.icns

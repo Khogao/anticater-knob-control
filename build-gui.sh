@@ -6,6 +6,15 @@ cd "$(dirname "$0")"
 APP_DIR="build/ANTICATERKnobControl.app"
 mkdir -p "$APP_DIR/Contents/MacOS" "$APP_DIR/Contents/Resources"
 
+# Optional app icon. It is not part of the repository: drop an .icns file at
+# assets/AppIcon.icns (or point ANTICATER_APP_ICON at one) and it is bundled.
+ICON_SRC="${ANTICATER_APP_ICON:-assets/AppIcon.icns}"
+if [[ -f "$ICON_SRC" ]]; then
+  cp "$ICON_SRC" "$APP_DIR/Contents/Resources/AppIcon.icns"
+else
+  rm -f "$APP_DIR/Contents/Resources/AppIcon.icns"
+fi
+
 xcrun swiftc \
   -parse-as-library \
   Sources/KnobControlGUI/main.swift \
@@ -20,6 +29,8 @@ cat > "$APP_DIR/Contents/Info.plist" <<'PLIST'
   <string>en</string>
   <key>CFBundleExecutable</key>
   <string>ANTICATERKnobControl</string>
+  <key>CFBundleIconFile</key>
+  <string>AppIcon</string>
   <key>CFBundleIdentifier</key>
   <string>cc.codex.anticater-knob-control</string>
   <key>CFBundleInfoDictionaryVersion</key>
