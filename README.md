@@ -103,6 +103,8 @@ tccutil reset Accessibility cc.codex.anticater-knob-control
   or a tool such as MonitorControl handles it.
 - Because the knob's own keys are blocked, hold + rotate only changes the brightness
   if a profile maps it to `brightness_up` / `brightness_down`.
+- *Quick pick* on each gesture row assigns a common action in one click: media and
+  brightness keys, zoom, scrolling, tabs, undo / redo, copy / paste, arrow keys.
 - *Quick templates* fill a profile for browsers, code editors, media, design and video
   timelines.
 - *Save config* writes `~/Library/Application Support/ANTICATER Knob Control/app-mapping.json`.

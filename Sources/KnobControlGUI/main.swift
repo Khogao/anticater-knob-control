@@ -1802,6 +1802,78 @@ private struct AppIconView: View {
     }
 }
 
+// Ready-made actions offered by the "Quick pick" menu on every gesture row.
+private struct QuickPick {
+    let title: String
+    let action: ActionConfig
+
+    static func keys(_ title: String, _ keys: String...) -> QuickPick {
+        QuickPick(title: title, action: ActionConfig(
+            type: keys.count == 1 ? "key" : "shortcut", description: title, keys: keys,
+            button: nil, clicks: nil, dx: nil, dy: nil, command: nil
+        ))
+    }
+
+    static func scroll(_ title: String, dx: Int = 0, dy: Int = 0) -> QuickPick {
+        QuickPick(title: title, action: ActionConfig(
+            type: "scroll", description: title, keys: nil,
+            button: nil, clicks: nil, dx: dx, dy: dy, command: nil
+        ))
+    }
+}
+
+private let quickPickGroups: [(title: String, items: [QuickPick])] = [
+    ("Media", [
+        .keys("Volume Up", "volume_up"),
+        .keys("Volume Down", "volume_down"),
+        .keys("Mute", "mute"),
+        .keys("Play / Pause", "play_pause"),
+        .keys("Next Track", "next_track"),
+        .keys("Previous Track", "previous_track"),
+        .keys("Brightness Up", "brightness_up"),
+        .keys("Brightness Down", "brightness_down")
+    ]),
+    ("View", [
+        .keys("Zoom In (⌘=)", "command", "="),
+        .keys("Zoom Out (⌘−)", "command", "-"),
+        .scroll("Scroll Up", dy: 3),
+        .scroll("Scroll Down", dy: -3),
+        .scroll("Scroll Left", dx: -3),
+        .scroll("Scroll Right", dx: 3)
+    ]),
+    ("Navigation", [
+        .keys("Next Tab (⌃⇥)", "control", "tab"),
+        .keys("Previous Tab (⌃⇧⇥)", "control", "shift", "tab"),
+        .keys("Back (⌘[)", "command", "["),
+        .keys("Forward (⌘])", "command", "]"),
+        .keys("Reload (⌘R)", "command", "r")
+    ]),
+    ("Edit", [
+        .keys("Undo (⌘Z)", "command", "z"),
+        .keys("Redo (⇧⌘Z)", "command", "shift", "z"),
+        .keys("Copy (⌘C)", "command", "c"),
+        .keys("Paste (⌘V)", "command", "v"),
+        .keys("Save (⌘S)", "command", "s"),
+        .keys("Find (⌘F)", "command", "f")
+    ]),
+    ("Keys", [
+        .keys("Left Arrow", "left"),
+        .keys("Right Arrow", "right"),
+        .keys("Up Arrow", "up"),
+        .keys("Down Arrow", "down"),
+        .keys("Return", "return"),
+        .keys("Esc", "escape"),
+        .keys("Space", "space")
+    ]),
+    ("Other", [
+        QuickPick(title: "Left Click", action: ActionConfig(
+            type: "mouse", description: "Left Click", keys: nil,
+            button: "left", clicks: 1, dx: nil, dy: nil, command: nil
+        )),
+        QuickPick(title: "No Action", action: .empty())
+    ])
+]
+
 private struct ActionEditorRow: View {
     let input: KnobInput
     let modifierMode: ModifierMode
@@ -1851,7 +1923,20 @@ private struct ActionEditorRow: View {
 
                 TextField("Description", text: optionalString($action.description))
                     .textFieldStyle(.roundedBorder)
-                    .frame(minWidth: 180)
+                    .frame(minWidth: 140)
+
+                Menu("Quick pick") {
+                    ForEach(Array(quickPickGroups.enumerated()), id: \.offset) { _, group in
+                        Section(group.title) {
+                            ForEach(Array(group.items.enumerated()), id: \.offset) { _, item in
+                                Button(item.title) {
+                                    action = item.action
+                                }
+                            }
+                        }
+                    }
+                }
+                .frame(width: 110)
             }
 
             fields
