@@ -120,7 +120,6 @@ const (
 	wmKeyDown        = 0x0100
 	wmSysKeyDown     = 0x0104
 	whKeyboardLL     = 13
-	llkhfInjected    = 0x10
 	ridInput         = 0x10000003
 	ridiDeviceName   = 0x20000007
 	ridevInputSink   = 0x00000100
@@ -205,6 +204,10 @@ type kbdLLHook struct {
 	Time      uint32
 	ExtraInfo uintptr
 }
+
+// ownInputMark is stored in dwExtraInfo of every key this app sends, so the
+// keyboard hook can tell its own keys from anyone else's.
+const ownInputMark uintptr = 0x414B4E42 // "AKNB"
 
 // INPUT is 40 bytes on amd64; both variants are laid out explicitly.
 type keyInput struct {
@@ -324,7 +327,7 @@ func rawDeviceName(device uintptr) string {
 }
 
 func sendKey(vk uint16, up bool) {
-	in := keyInput{Type: inputKeyboard, Vk: vk}
+	in := keyInput{Type: inputKeyboard, Vk: vk, Extra: ownInputMark}
 	if extendedKeys[vk] {
 		in.Flags |= keyExtended
 	}

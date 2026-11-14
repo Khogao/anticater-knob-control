@@ -239,7 +239,8 @@ Núm ──HID──► Windows ─┬─► Raw Input (WM_INPUT) ──► onRa
    `0xE2` hoặc `0xCD` = nhấn, `0x6F`/`0x70` = giữ + xoay phải/trái, `0` = nhả.
 3. **Chọn hành động.** Lấy exe và tiêu đề của cửa sổ đang ở phía trước (lưu đệm 150 ms), tra cấu hình, chạy bằng `SendInput`.
 4. **Chặn phím gốc.** Hook bàn phím cấp thấp thấy `VK_VOLUME_UP`, `VK_VOLUME_DOWN`, `VK_VOLUME_MUTE`, `VK_MEDIA_PLAY_PAUSE`.
-   Phím do chính app gửi mang cờ `LLKHF_INJECTED` và luôn được cho qua.
+   Phím do chính app gửi mang dấu riêng trong `dwExtraInfo` (`ownInputMark`) và luôn được cho qua. Không dùng cờ
+   `LLKHF_INJECTED` để nhận biết: với núm Bluetooth LE, chính phím volume của núm cũng mang cờ này.
 5. **Phân biệt núm với bàn phím thật bằng mốc thời gian.** Mỗi tín hiệu núm được ghi mốc `GetMessageTime()`; mỗi phím trong hook
    có mốc `KBDLLHOOKSTRUCT.time`. Hai mốc cách nhau không quá 60 ms (`knobWindowMs`) thì phím là của núm và bị chặn.
    Nếu chưa có tín hiệu núm nào khớp, phím bị giữ lại 50 ms (`pendingHoldMs`); sau đó nếu vẫn không có thì nó là phím của

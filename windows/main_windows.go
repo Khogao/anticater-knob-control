@@ -64,7 +64,7 @@ var (
 	lastKnobMs uint64
 	pending    []pendingKey
 
-	rawCount, recognizedCount, swallowedCount, resentCount int
+	rawCount, recognizedCount, swallowedCount, resentCount, hookCalls int
 	recentRaw                                              []string
 	devicesSeen                                            []string
 	deviceKnown                                            = map[uintptr]bool{}
@@ -270,7 +270,12 @@ func orDash(s string) string {
 func hookProc(code int32, wParam, lParam uintptr) uintptr {
 	if code >= 0 && !paused && cfg != nil {
 		k := (*kbdLLHook)(unsafe.Pointer(lParam))
-		if k.Flags&llkhfInjected == 0 {
+		hookCalls++
+		// The knob's own volume keys can arrive flagged as injected (seen on a
+		// Bluetooth LE knob: Windows synthesizes them from the consumer-control
+		// report), so the flag cannot be used to skip them. Only keys this app
+		// sent itself, recognized by their mark, are let through untouched.
+		if k.ExtraInfo != ownInputMark {
 			if gesture := gestureForVK(k.VkCode); gesture != "" {
 				exe, title := currentApp()
 				if act, _ := cfg.resolve(gesture, exe, title); !act.isPassthrough() {
@@ -315,7 +320,7 @@ func flushPending() {
 	for _, p := range resend {
 		resentCount++
 		logf("held vk=0x%02x time=%d -> re-sent (not from the knob)", p.vk, p.time)
-		sendKey(p.vk, p.up) // injected, so the hook lets it through
+		sendKey(p.vk, p.up) // carries ownInputMark, so the hook lets it through
 	}
 	if len(pending) > 0 {
 		pSetTimer.Call(hwndMain, timerPending, pendingHoldMs, 0)
@@ -409,8 +414,8 @@ func writeDiagnostics() {
 	fmt.Fprintf(&b, "Anticater Knob diagnostic report\r\nGenerated: %s\r\n\r\n", time.Now().Format("2006-01-02 15:04:05"))
 	fmt.Fprintf(&b, "Config file: %s\r\nDevices wanted: %v\r\nPaused: %v\r\nKeyboard hook installed: %v\r\n", configPath(), cfg.Devices, paused, hookHandle != 0)
 	fmt.Fprintf(&b, "Last non-console app: %s\r\nForeground now: %s | %s\r\n\r\n", orDash(lastAppExe), orDash(exe), title)
-	fmt.Fprintf(&b, "Knob reports received: %d\r\nRecognized gestures: %d\r\nNative keys swallowed: %d\r\nKeys re-sent (not from the knob): %d\r\nLast event: %s\r\n\r\n",
-		rawCount, recognizedCount, swallowedCount, resentCount, lastEventText)
+	fmt.Fprintf(&b, "Knob reports received: %d\r\nRecognized gestures: %d\r\nNative keys swallowed: %d\r\nKeys re-sent (not from the knob): %d\r\nKeyboard hook calls: %d\r\nLast event: %s\r\n\r\n",
+		rawCount, recognizedCount, swallowedCount, resentCount, hookCalls, lastEventText)
 	b.WriteString("Consumer-control devices seen (only those that sent input):\r\n")
 	if len(devicesSeen) == 0 {
 		b.WriteString("  none yet - turn the knob, or press a media key on a keyboard\r\n")
