@@ -26,3 +26,6 @@ windows/AnticaterKnob.exe
 windows/knob-config.json
 windows/knob.log
 windows/knob-diagnostic.txt
+
+# Local-only material: copies of personal config and third-party artwork
+local/

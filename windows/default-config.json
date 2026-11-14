@@ -7,7 +7,8 @@
     "scroll: dy > 0 scrolls up, dx > 0 scrolls right; optional keys are held while scrolling (ctrl = zoom).",
     "every: act only on every Nth tick; use 2 if one detent of your knob fires an action twice.",
     "apps: key is the exe name, or 'exe|text' to match only when the window title contains text.",
-    "An app entry only needs the gestures it changes; the rest fall back to global."
+    "An app entry only needs the gestures it changes; the rest fall back to global.",
+    "language: \"vi\" or \"en\"; leave it out to follow the Windows display language."
   ],
   "devices": ["05AC:022C", "514C:8850", "514C:4155"],
   "log": true,

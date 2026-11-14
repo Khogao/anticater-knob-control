@@ -24,11 +24,13 @@ type Action struct {
 }
 
 type Config struct {
-	Help    []string                     `json:"_help,omitempty"`
-	Devices []string                     `json:"devices"`
-	Log     bool                         `json:"log"`
-	Global  map[string]Action            `json:"global"`
-	Apps    map[string]map[string]Action `json:"apps"`
+	Help    []string `json:"_help,omitempty"`
+	Devices []string `json:"devices"`
+	Log     bool     `json:"log"`
+	// Language is "vi", "en", or empty to follow the Windows display language.
+	Language string                       `json:"language,omitempty"`
+	Global   map[string]Action            `json:"global"`
+	Apps     map[string]map[string]Action `json:"apps"`
 }
 
 var gestureNames = []string{"rotate_left", "rotate_right", "press", "press_rotate_left", "press_rotate_right"}
@@ -70,6 +72,9 @@ func loadConfig() (*Config, error) {
 func (c *Config) validate() error {
 	if len(c.Devices) == 0 {
 		c.Devices = []string{"05AC:022C"}
+	}
+	if c.Language != "" && c.Language != "vi" && c.Language != "en" {
+		return fmt.Errorf("language must be \"vi\" or \"en\", not %q", c.Language)
 	}
 	for _, d := range c.Devices {
 		if _, _, ok := parseDeviceID(d); !ok {

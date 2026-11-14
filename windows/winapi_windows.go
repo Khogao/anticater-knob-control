@@ -17,6 +17,7 @@ var (
 	comctl32 = syscall.NewLazyDLL("comctl32.dll")
 
 	pGetMessageTime       = user32.NewProc("GetMessageTime")
+	pPostMessageW         = user32.NewProc("PostMessageW")
 	pLoadImageW           = user32.NewProc("LoadImageW")
 	pGetSystemMetrics     = user32.NewProc("GetSystemMetrics")
 	pSendMessageW         = user32.NewProc("SendMessageW")
@@ -107,22 +108,23 @@ const (
 	lbSetCurSel    = 0x0186
 	lbGetCurSel    = 0x0188
 
-	wmDestroy      = 0x0002
-	wmCommand      = 0x0111
-	wmTimer        = 0x0113
-	wmInput        = 0x00FF
-	wmApp          = 0x8000
-	wmTray         = wmApp + 1
-	wmLButtonUp    = 0x0202
-	wmRButtonUp    = 0x0205
-	wmKeyDown      = 0x0100
-	wmSysKeyDown   = 0x0104
-	whKeyboardLL   = 13
-	llkhfInjected  = 0x10
-	ridInput       = 0x10000003
-	ridiDeviceName = 0x20000007
-	ridevInputSink = 0x00000100
-	rimTypeHID     = 2
+	wmDestroy        = 0x0002
+	wmCommand        = 0x0111
+	wmTimer          = 0x0113
+	wmInput          = 0x00FF
+	wmApp            = 0x8000
+	wmTray           = wmApp + 1
+	wmSwitchLanguage = wmApp + 2 // wParam: 0 = Vietnamese, 1 = English
+	wmLButtonUp      = 0x0202
+	wmRButtonUp      = 0x0205
+	wmKeyDown        = 0x0100
+	wmSysKeyDown     = 0x0104
+	whKeyboardLL     = 13
+	llkhfInjected    = 0x10
+	ridInput         = 0x10000003
+	ridiDeviceName   = 0x20000007
+	ridevInputSink   = 0x00000100
+	rimTypeHID       = 2
 
 	inputMouse    = 0
 	inputKeyboard = 1

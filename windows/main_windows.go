@@ -36,6 +36,7 @@ const (
 	cmdExit        = 106
 	cmdSettings    = 107
 	cmdDiagnostics = 108
+	cmdLanguage    = 109
 	trayIconID     = 1
 	idiApplication = 32512
 )
@@ -228,7 +229,7 @@ func onKnobReport(report []byte, msgTime uint32) {
 	exe, title := currentApp()
 	act, source := cfg.resolve(gesture, exe, title)
 	lastEventText = fmt.Sprintf("%s in %s -> %s", gesture, orDash(exe), describe(act, source))
-	setText(hMonitor, "Tín hiệu gần nhất: "+lastEventText)
+	setText(hMonitor, L("Tín hiệu gần nhất: ", "Last knob input: ")+lastEventText)
 	logf("report % x  time=%d  %s  app=%s  -> %s", report, msgTime, gesture, exe, describe(act, source))
 	if act.isPassthrough() || act.Type == "noop" {
 		return
@@ -329,17 +330,18 @@ func reloadConfig(announce bool) {
 		cfgModTime = st.ModTime()
 	}
 	if err != nil {
-		balloon("Config error", err.Error())
+		balloon(L("Lỗi cấu hình", "Config error"), err.Error())
 		if cfg == nil {
 			cfg = &Config{Devices: []string{"05AC:022C"}, Global: map[string]Action{}, Apps: map[string]map[string]Action{}}
 		}
 		return
 	}
 	cfg = c
+	setLanguage(cfg.Language)
 	deviceKnown = map[uintptr]bool{}
 	logf("config loaded: %d app entries, devices %v", len(cfg.Apps), cfg.Devices)
 	if announce {
-		balloon("Anticater Knob", fmt.Sprintf("Config reloaded (%d app entries).", len(cfg.Apps)))
+		balloon("Anticater Knob", fmt.Sprintf(L("Đã nạp lại cấu hình (%d hồ sơ app).", "Config reloaded (%d app entries)."), len(cfg.Apps)))
 	}
 }
 
@@ -366,12 +368,12 @@ func selfExeName() string {
 func addAppToConfig(exe string) {
 	data, err := os.ReadFile(configPath())
 	if err != nil {
-		balloon("Config error", err.Error())
+		balloon(L("Lỗi cấu hình", "Config error"), err.Error())
 		return
 	}
 	var raw map[string]json.RawMessage
 	if err := json.Unmarshal(data, &raw); err != nil {
-		balloon("Config error", err.Error())
+		balloon(L("Lỗi cấu hình", "Config error"), err.Error())
 		return
 	}
 	apps := map[string]json.RawMessage{}
@@ -380,7 +382,7 @@ func addAppToConfig(exe string) {
 	}
 	for key := range apps {
 		if strings.EqualFold(key, exe) {
-			balloon("Anticater Knob", exe+" is already in the config.")
+			balloon("Anticater Knob", exe+L(" đã có trong cấu hình.", " is already in the config."))
 			shellOpen(configPath())
 			return
 		}
@@ -390,11 +392,12 @@ func addAppToConfig(exe string) {
 	raw["apps"], _ = json.Marshal(apps)
 	out, _ := json.MarshalIndent(raw, "", "  ")
 	if err := os.WriteFile(configPath(), out, 0o644); err != nil {
-		balloon("Config error", err.Error())
+		balloon(L("Lỗi cấu hình", "Config error"), err.Error())
 		return
 	}
 	reloadConfig(false)
-	balloon("Anticater Knob", "Added "+exe+" (copied from global). Edit it in the config file.")
+	balloon("Anticater Knob", L("Đã thêm "+exe+" (chép từ hồ sơ mặc định). Sửa trong file cấu hình hoặc cửa sổ Cài đặt.",
+		"Added "+exe+" (copied from global). Edit it in the config file or the Settings window."))
 	shellOpen(configPath())
 }
 
@@ -429,10 +432,38 @@ func writeDiagnostics() {
 		"- Gestures recognized but the volume still changes: \"Native keys swallowed\" should grow; if it does not, the hook is not seeing the knob's keys.\r\n")
 	path := strings.TrimSuffix(configPath(), "knob-config.json") + "knob-diagnostic.txt"
 	if err := os.WriteFile(path, []byte(b.String()), 0o644); err != nil {
-		balloon("Anticater Knob", "Không ghi được báo cáo: "+err.Error())
+		balloon("Anticater Knob", L("Không ghi được báo cáo: ", "Could not write the report: ")+err.Error())
 		return
 	}
 	shellOpen(path)
+}
+
+// switchLanguage changes the UI language now and stores it in the config file,
+// touching only the "language" key so the rest of the file is kept as written.
+func switchLanguage(code string) {
+	data, err := os.ReadFile(configPath())
+	if err == nil {
+		var raw map[string]json.RawMessage
+		if err = json.Unmarshal(data, &raw); err == nil {
+			raw["language"], _ = json.Marshal(code)
+			var out []byte
+			if out, err = json.MarshalIndent(raw, "", "  "); err == nil {
+				err = os.WriteFile(configPath(), out, 0o644)
+			}
+		}
+	}
+	if err != nil {
+		balloon(L("Lỗi cấu hình", "Config error"), err.Error())
+	}
+	setLanguage(code)
+	reloadConfig(false)
+	setLanguage(code) // even when the file could not be written
+	if editCfg != nil {
+		editCfg.Language = code
+	}
+	if hwndSettings != 0 {
+		reopenSettings()
+	}
 }
 
 // ---- tray -------------------------------------------------------------------
@@ -468,20 +499,21 @@ func showMenu() {
 		}
 		return mfString
 	}
-	add(0, mfGrayed, "Gần nhất: "+lastEventText)
+	add(0, mfGrayed, L("Gần nhất: ", "Last: ")+lastEventText)
 	add(0, mfSeparator, "")
-	add(cmdSettings, mfString, "Cài đặt…")
-	add(cmdPause, check(paused), "Tạm dừng")
-	add(cmdOpenConfig, mfString, "Mở file cấu hình")
-	add(cmdReload, mfString, "Nạp lại cấu hình")
+	add(cmdSettings, mfString, L("Cài đặt…", "Settings…"))
+	add(cmdPause, check(paused), L("Tạm dừng", "Paused"))
+	add(cmdOpenConfig, mfString, L("Mở file cấu hình", "Open config file"))
+	add(cmdReload, mfString, L("Nạp lại cấu hình", "Reload config"))
 	if lastAppExe != "" {
-		add(cmdAddApp, mfString, "Thêm "+lastAppExe+" vào cấu hình")
+		add(cmdAddApp, mfString, L("Thêm "+lastAppExe+" vào cấu hình", "Add "+lastAppExe+" to config"))
 	}
-	add(cmdOpenLog, mfString, "Mở log")
-	add(cmdDiagnostics, mfString, "Báo cáo chẩn đoán")
-	add(cmdAutostart, check(autostartEnabled()), "Khởi động cùng Windows")
+	add(cmdOpenLog, mfString, L("Mở log", "Open log"))
+	add(cmdDiagnostics, mfString, L("Báo cáo chẩn đoán", "Diagnostic report"))
+	add(cmdAutostart, check(autostartEnabled()), L("Khởi động cùng Windows", "Start with Windows"))
+	add(cmdLanguage, mfString, L("Language: English", "Ngôn ngữ: Tiếng Việt"))
 	add(0, mfSeparator, "")
-	add(cmdExit, mfString, "Thoát")
+	add(cmdExit, mfString, L("Thoát", "Exit"))
 
 	var pt point
 	pGetCursorPos.Call(uintptr(unsafe.Pointer(&pt)))
@@ -505,6 +537,8 @@ func showMenu() {
 		shellOpen(logPath())
 	case cmdDiagnostics:
 		writeDiagnostics()
+	case cmdLanguage:
+		switchLanguage(L("en", "vi"))
 	case cmdAutostart:
 		exe, _ := os.Executable()
 		setAutostart(!autostartEnabled(), exe)
@@ -527,6 +561,13 @@ func wndProc(hwnd uintptr, message uint32, wParam, lParam uintptr) uintptr {
 			flushPending()
 		case timerHousekeeping:
 			housekeeping()
+		}
+		return 0
+	case wmSwitchLanguage:
+		if wParam == 1 {
+			switchLanguage("en")
+		} else {
+			switchLanguage("vi")
 		}
 		return 0
 	case wmTray:
@@ -554,7 +595,8 @@ func main() {
 
 	_, _, lastErr := pCreateMutexW.Call(0, 0, uintptr(unsafe.Pointer(u16("Local\\AnticaterKnobWindows"))))
 	if errno, ok := lastErr.(syscall.Errno); ok && errno == errorAlreadyExists {
-		messageBox("Anticater Knob", "Already running (look for the icon in the system tray).")
+		setLanguage("")
+		messageBox("Anticater Knob", L("App đang chạy rồi (tìm biểu tượng ở khay hệ thống).", "Already running (look for the icon in the system tray)."))
 		return
 	}
 
@@ -569,7 +611,7 @@ func main() {
 	hwndMain, _, _ = pCreateWindowExW.Call(0, uintptr(unsafe.Pointer(className)), uintptr(unsafe.Pointer(u16("Anticater Knob"))),
 		0, 0, 0, 0, 0, 0, 0, inst, 0)
 	if hwndMain == 0 {
-		messageBox("Anticater Knob", "Could not create the window.")
+		messageBox("Anticater Knob", L("Không tạo được cửa sổ.", "Could not create the window."))
 		return
 	}
 
@@ -580,13 +622,14 @@ func main() {
 	// Consumer Control top-level collection (usage page 0x0C, usage 0x01).
 	rid := rawInputDevice{UsagePage: 0x0C, Usage: 0x01, Flags: ridevInputSink, Target: hwndMain}
 	if ok, _, err := pRegisterRawInputDevices.Call(uintptr(unsafe.Pointer(&rid)), 1, unsafe.Sizeof(rid)); ok == 0 {
-		messageBox("Anticater Knob", fmt.Sprintf("Raw Input registration failed: %v", err))
+		messageBox("Anticater Knob", fmt.Sprintf(L("Đăng ký Raw Input thất bại: %v", "Raw Input registration failed: %v"), err))
 		return
 	}
 
 	hookHandle, _, _ = pSetWindowsHookExW.Call(whKeyboardLL, syscall.NewCallback(hookProc), inst, 0)
 	if hookHandle == 0 {
-		balloon("Anticater Knob", "Keyboard hook failed: remapped gestures will also change the volume.")
+		balloon("Anticater Knob", L("Không cài được hook bàn phím: thao tác đã gán lại vẫn sẽ đổi âm lượng.",
+			"Keyboard hook failed: remapped gestures will also change the volume."))
 	}
 	defer pUnhookWindowsHookEx.Call(hookHandle)
 

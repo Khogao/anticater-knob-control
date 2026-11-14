@@ -10,7 +10,7 @@ Bản Windows của Knob Console: núm Anticater VK-01 tự đổi chức năng 
 
 Mục lục: 1. Chạy nhanh · 2. Build · 3. Dùng · 4. Checklist thử lần đầu · 5. Cấu hình · 6. Cách hoạt động ·
 7. Bản đồ mã nguồn · 8. Dữ kiện đã xác nhận trên macOS · 9. Điểm chưa kiểm chứng và cách xử lý · 10. Việc nên làm tiếp ·
-11. Khắc phục sự cố
+11. Khắc phục sự cố · 12. Tài nguyên kèm theo
 
 ---
 
@@ -98,6 +98,19 @@ callback của hook; cảnh báo này là bình thường.
 | Khởi động cùng Windows | Bật/tắt mục `AnticaterKnob` trong `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` |
 | Thoát | Thoát app |
 
+**Ngôn ngữ**
+
+Giao diện có hai ngôn ngữ: tiếng Việt và tiếng Anh. Lần chạy đầu app theo ngôn ngữ hiển thị của Windows
+(Windows tiếng Việt thì tiếng Việt, còn lại tiếng Anh). Đổi bằng một trong ba cách:
+
+- Menu ở khay: mục "Language: English" (khi đang ở tiếng Việt) hoặc "Ngôn ngữ: Tiếng Việt" (khi đang ở tiếng Anh).
+- Cửa sổ cài đặt: ô "Ngôn ngữ / Language" ở góc dưới phải. Cửa sổ dựng lại ngay, các thay đổi chưa lưu được giữ.
+- File cấu hình: `"language": "vi"` hoặc `"en"`; bỏ khoá này để theo Windows.
+
+Lựa chọn được ghi vào `knob-config.json` ngay khi đổi. Menu, cửa sổ cài đặt, bảng Chọn nhanh, mẫu nhanh và các thông báo
+đều đổi theo. Dòng "Gần nhất / Last", file log và báo cáo chẩn đoán luôn bằng tiếng Anh. Tên menu trong tài liệu này ghi
+theo bản tiếng Việt.
+
 **Cửa sổ cài đặt**
 
 - **Cột trái:** danh sách hồ sơ: "Mặc định (mọi app)" và từng app. "Thêm app…" liệt kê các app đang có cửa sổ;
@@ -131,6 +144,7 @@ và giữ lại `knob-diagnostic.txt` cùng `knob.log`.
 | 9 | Chuột trái vào biểu tượng | Cửa sổ cài đặt mở, chữ rõ, không bị cắt | Mục 9.6 |
 | 10 | Trong cửa sổ: chọn một app, dùng Chọn nhanh, bấm Lưu | Dòng trạng thái "Đã lưu và áp dụng…", file JSON đổi | Hộp thoại lỗi ghi rõ dòng sai |
 | 11 | Bật "Khởi động cùng Windows", đăng xuất, đăng nhập lại | App tự chạy | Kiểm tra giá trị registry ở mục 3 |
+| 12 | Đổi ngôn ngữ từ menu khay, rồi từ ô trong cửa sổ cài đặt | Menu và cửa sổ đổi ngôn ngữ; thay đổi chưa lưu vẫn còn; `knob-config.json` có khoá `language` | Cửa sổ biến mất hoặc treo → xem `reopenSettings` và `switchLanguage` |
 
 ## 5. Cấu hình
 
@@ -168,6 +182,7 @@ cấu hình đang dùng.
 |---|---|
 | `devices` | Danh sách `VID:PID` (hex, 4 chữ số mỗi phần) của núm. Chỉ tín hiệu từ các thiết bị này mới được xử lý |
 | `log` | `true` thì ghi `knob.log` (tự xoá khi vượt 1 MB) |
+| `language` | `"vi"` hoặc `"en"`; không có thì theo ngôn ngữ hiển thị của Windows |
 | `global` | Hồ sơ mặc định |
 | `apps` | Hồ sơ theo app |
 | `_help` | Ghi chú, app bỏ qua |
@@ -244,6 +259,7 @@ Các hằng số nằm đầu `main_windows.go`: `knobWindowMs = 60`, `pendingHo
 | `config_windows.go` | Kiểu `Config`, `Action`; `loadConfig`, `validate`; `matchesDevice` (khớp `VID:PID` trong đường dẫn thiết bị); `resolve` (chọn hành động theo app và tiêu đề) |
 | `actions_windows.go` | Bảng tên phím → mã phím ảo (`namedKeys`, `lookupKey`), `perform` chạy hành động |
 | `settings_windows.go` | Cửa sổ cài đặt bằng Win32 thuần: tạo control (`mk`, `combo`, `editBox`), nạp/ghi hồ sơ (`loadProfile`, `commitProfile`, `readRow`, `setRow`), `quickPicks`, `templates`, `saveSettings`, `settingsProc`; `initUI` và `enableVisualStyles` |
+| `lang_windows.go` | Hai ngôn ngữ: `L("tiếng Việt", "English")` chọn chuỗi theo ngôn ngữ hiện tại; kiểu `text` cho các bảng; `setLanguage` |
 | `default-config.json` | Cấu hình mặc định, nhúng vào exe bằng `//go:embed` |
 | `AnticaterKnob.ico` | Icon, đọc lúc chạy bởi `appIcon()` trong `winapi_windows.go`; sinh từ `../assets/logo.svg`, không nằm trong git |
 | `build.bat`, `build.sh` | Script build cho Windows và cho macOS/Linux |
@@ -255,6 +271,8 @@ Lưu ý khi sửa:
 - Mọi callback chạy trên luồng của `main()` (đã `runtime.LockOSThread`), nên các biến toàn cục không cần khoá.
   Đừng gọi hàm chậm trong `hookProc`: Windows gỡ hook nếu callback chậm quá ngưỡng (mặc định khoảng 300 ms).
 - Thêm tên phím: sửa `namedKeys`. Thêm mục Chọn nhanh: sửa `quickPicks`. Thêm mẫu: sửa `templates`.
+- Mọi chuỗi hiện ra cho người dùng phải viết dạng `L("tiếng Việt", "English")`, hoặc `text{"…", "…"}` trong các bảng.
+  Nhãn tiếng Anh thường dài hơn; kiểm tra độ rộng control trong `openSettings` khi thêm.
 
 ## 8. Dữ kiện đã xác nhận trên macOS
 
@@ -351,3 +369,22 @@ Theo thứ tự ưu tiên:
 
 File sinh ra khi chạy, đều nằm cạnh exe: `knob-config.json`, `knob.log`, `knob-diagnostic.txt`.
 File app đọc nếu có: `AnticaterKnob.ico`.
+
+## 12. Tài nguyên kèm theo
+
+Mọi thứ dùng trong quá trình làm trên macOS đều có trên ổ này. Đường dẫn tính từ thư mục gốc repo.
+
+| Vị trí | Nội dung | Trong git |
+|---|---|---|
+| `Sources/`, `build-gui.sh`, `README.md` | App macOS (Knob Console): mã nguồn, script build, tài liệu tiếng Anh | Có |
+| `windows/` | App Windows này | Có (trừ exe, ico và file sinh ra khi chạy) |
+| `assets/logo.svg`, `assets/make-icons.swift` | Logo vector và script sinh icon cho cả hai bản (chạy trên macOS) | Script có, logo không |
+| `assets/AppIcon.icns`, `windows/AnticaterKnob.ico` | Icon đã sinh, màu cam `FF9124` | Không |
+| `tools/mac-probes/` | Bốn công cụ chẩn đoán cho macOS đã dùng để tìm lỗi: liệt kê event tap, ghi phím và phím media, so mốc thời gian tín hiệu núm với phím hệ thống, liệt kê cửa sổ của app | Có |
+| `local/app-mapping.mac.json` | Bản sao cấu hình Knob Console đang dùng trên Mac (hồ sơ Chrome, mặc định...) | Không |
+| `local/vendor-AppIcon.icns` | Icon gốc màu xanh của app ANTICATER chính hãng | Không |
+| `local/AppIcon-orange-recolored.icns` | Icon cam đổi màu trực tiếp từ icon gốc (bản đang gắn trong app Mac đang chạy) | Không |
+| `../anticater-refs/` | Năm repo tham khảo: `anticater-dialer`, `vk01-anticater`, `antiknob`, `anticater-web`, `anticater-vk01-studio` | Repo riêng, nằm ngoài repo này |
+
+Trong các repo tham khảo, `anticater-vk01-studio` là app Windows (C#) cho cùng chiếc núm, đáng đọc khi cần đối chiếu cách
+Windows giao tín hiệu; `anticater-web` là trang cấu hình núm chạy trên Chrome, dùng được trên Windows.
