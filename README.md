@@ -19,6 +19,14 @@ upstream behaviour, not this fork.
 - **Show console reopens the window.** Upstream only activated the app, so a closed
   window could not be brought back.
 
+## Windows
+
+[`windows/`](windows/) holds a separate Windows app with the same idea, written in Go:
+tray icon, settings window, per-app mappings chosen by the foreground window. It shares
+no code with the macOS app. It compiles but has not been run on Windows yet; its
+[README](windows/README.md) (Vietnamese) has the build steps, a first-run checklist and
+the list of unverified points.
+
 ## Knobs that enumerate as a keyboard
 
 Upstream was written for a VK-01 whose Bluetooth interface reports itself as a mouse,
@@ -69,7 +77,14 @@ open build/ANTICATERKnobControl.app
 ```
 
 To give the app an icon, put an `.icns` file at `assets/AppIcon.icns` before building.
-The file is ignored by git; no icon ships with this repository.
+`assets/make-icons.swift` generates it, and the Windows `.ico`, from a vector file at
+`assets/logo.svg`; pass a colour to recolour the mark:
+
+```bash
+swift assets/make-icons.swift assets/logo.svg FF9124
+```
+
+The logo and the generated icons are ignored by git; no icon ships with this repository.
 
 ## Permissions
 
