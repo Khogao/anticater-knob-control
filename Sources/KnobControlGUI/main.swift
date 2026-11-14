@@ -690,7 +690,6 @@ private final class KnobService: ObservableObject {
             let usage = IOHIDElementGetUsage(element)
             let intValue = IOHIDValueGetIntegerValue(value)
             let input = knobInput(page: page, usage: usage, intValue: intValue)
-            NativeKeyBlocker.knobReported()
 
             Task { @MainActor in
                 service.recordHIDEvent(page: page, usage: usage, intValue: intValue, input: input)
@@ -1214,28 +1213,35 @@ private final class KnobService: ObservableObject {
 }
 
 // Without a seize, macOS still acts on the knob's volume / mute / brightness
-// keys. This session event tap drops those system-defined key events when a
-// report from the knob arrives at about the same time, so only the mapped
-// action runs. Keys from a real keyboard are held for a moment and re-posted
-// if no knob report claims them. Everything here runs on the main thread.
+// keys. This drops those system-defined key events when one of the knob's own
+// HID reports carries about the same timestamp, so only the mapped action
+// runs. Keys from a real keyboard are held briefly and re-posted when no knob
+// report claims them.
+//
+// The tap and a second, listen-only HID manager live on their own thread and
+// compare the events' own timestamps: the main thread can lag by hundreds of
+// milliseconds while actions run, which made arrival times useless.
 private enum NativeKeyBlocker {
     static let ownEventTag: Int64 = 0x4B4E4F42 // "KNOB": events this app posts
-    private static let knobWindow: TimeInterval = 0.12
-    private static let holdTime: TimeInterval = 0.06
+    private static let matchWindow: UInt64 = 60_000_000 // ns between report and key
+    private static let holdTime: TimeInterval = 0.05
     // NX_KEYTYPE_ sound up, sound down, brightness up, brightness down, mute, play
     private static let blockedKeyTypes: Set<Int> = [0, 1, 2, 3, 7, 16]
 
+    private static var thread: Thread?
+    private static var runLoop: CFRunLoop?
     private static var tap: CFMachPort?
-    private static var source: CFRunLoopSource?
-    private static var lastKnobReport: TimeInterval = 0
-    private static var held: [(event: CGEvent, at: TimeInterval)] = []
-
-    static func knobReported() {
-        lastKnobReport = ProcessInfo.processInfo.systemUptime
-    }
+    // The rest is only touched on the blocker thread.
+    private static var reportTimes: [UInt64] = []
+    private static var held: [(event: CGEvent, time: UInt64, heldAt: UInt64)] = []
+    private static let timebase: mach_timebase_info_data_t = {
+        var info = mach_timebase_info_data_t()
+        mach_timebase_info(&info)
+        return info
+    }()
 
     static func start() -> Bool {
-        guard tap == nil else { return true }
+        guard thread == nil else { return true }
         let mask = CGEventMask(1) << 14 // NX_SYSDEFINED
         guard let port = CGEvent.tapCreate(
             tap: .cgSessionEventTap,
@@ -1245,24 +1251,72 @@ private enum NativeKeyBlocker {
             callback: { _, type, event, _ in NativeKeyBlocker.handle(type: type, event: event) },
             userInfo: nil
         ) else { return false }
-        let runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, port, 0)
-        CFRunLoopAddSource(CFRunLoopGetMain(), runLoopSource, .commonModes)
-        CGEvent.tapEnable(tap: port, enable: true)
+
+        let ready = DispatchSemaphore(value: 0)
+        let worker = Thread {
+            guard let loop = CFRunLoopGetCurrent() else {
+                ready.signal()
+                return
+            }
+            runLoop = loop
+            reportTimes.removeAll()
+            held.removeAll()
+            let source = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, port, 0)
+            CFRunLoopAddSource(loop, source, .commonModes)
+
+            let manager = IOHIDManagerCreate(kCFAllocatorDefault, IOOptionBits(kIOHIDOptionsTypeNone))
+            IOHIDManagerSetDeviceMatching(manager, [
+                kIOHIDVendorIDKey: vendorID,
+                kIOHIDProductIDKey: productID
+            ] as CFDictionary)
+            IOHIDManagerRegisterInputValueCallback(manager, { _, _, _, value in
+                NativeKeyBlocker.noteReport(machTime: IOHIDValueGetTimeStamp(value))
+            }, nil)
+            IOHIDManagerScheduleWithRunLoop(manager, loop, CFRunLoopMode.defaultMode.rawValue)
+            IOHIDManagerOpen(manager, IOOptionBits(kIOHIDOptionsTypeNone))
+
+            CGEvent.tapEnable(tap: port, enable: true)
+            ready.signal()
+            CFRunLoopRun()
+
+            CGEvent.tapEnable(tap: port, enable: false)
+            IOHIDManagerUnscheduleFromRunLoop(manager, loop, CFRunLoopMode.defaultMode.rawValue)
+            IOHIDManagerClose(manager, IOOptionBits(kIOHIDOptionsTypeNone))
+            CFRunLoopRemoveSource(loop, source, .commonModes)
+            CFMachPortInvalidate(port)
+        }
+        worker.name = "NativeKeyBlocker"
+        worker.qualityOfService = .userInteractive
         tap = port
-        source = runLoopSource
+        thread = worker
+        worker.start()
+        ready.wait()
         return true
     }
 
     static func stop() {
-        guard let port = tap else { return }
-        CGEvent.tapEnable(tap: port, enable: false)
-        if let source {
-            CFRunLoopRemoveSource(CFRunLoopGetMain(), source, .commonModes)
+        guard thread != nil else { return }
+        if let runLoop {
+            CFRunLoopStop(runLoop)
         }
-        CFMachPortInvalidate(port)
+        thread = nil
+        runLoop = nil
         tap = nil
-        source = nil
-        held.removeAll()
+    }
+
+    private static func nanoseconds(machTime: UInt64) -> UInt64 {
+        machTime * UInt64(timebase.numer) / UInt64(timebase.denom)
+    }
+
+    private static func noteReport(machTime: UInt64) {
+        reportTimes.append(nanoseconds(machTime: machTime))
+        if reportTimes.count > 64 {
+            reportTimes.removeFirst(reportTimes.count - 64)
+        }
+    }
+
+    private static func knobReported(near time: UInt64) -> Bool {
+        reportTimes.contains { $0 > time ? $0 - time < matchWindow : time - $0 < matchWindow }
     }
 
     private static func handle(type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>? {
@@ -1278,25 +1332,30 @@ private enum NativeKeyBlocker {
         else {
             return Unmanaged.passUnretained(event)
         }
-        let now = ProcessInfo.processInfo.systemUptime
-        if now - lastKnobReport < knobWindow {
+        let time = event.timestamp
+        if knobReported(near: time) {
             return nil // the knob's own key
         }
-        // Origin unknown yet: hold it, then decide once a knob report had time to arrive.
-        if let copy = event.copy() {
-            held.append((copy, now))
-            DispatchQueue.main.asyncAfter(deadline: .now() + holdTime) { releaseHeld() }
+        // Its report may not have been delivered yet: hold the key, then decide.
+        guard let copy = event.copy(), let runLoop else {
+            return Unmanaged.passUnretained(event)
         }
+        held.append((copy, time, DispatchTime.now().uptimeNanoseconds))
+        let timer = CFRunLoopTimerCreateWithHandler(kCFAllocatorDefault, CFAbsoluteTimeGetCurrent() + holdTime, 0, 0, 0) { _ in
+            releaseHeld()
+        }
+        CFRunLoopAddTimer(runLoop, timer, .commonModes)
         return nil
     }
 
     private static func releaseHeld() {
-        let now = ProcessInfo.processInfo.systemUptime
-        var keep: [(event: CGEvent, at: TimeInterval)] = []
+        let now = DispatchTime.now().uptimeNanoseconds
+        let minimumHold = UInt64(holdTime * 1_000_000_000) - 5_000_000
+        var keep: [(event: CGEvent, time: UInt64, heldAt: UInt64)] = []
         for item in held {
-            if now - item.at < holdTime - 0.005 {
+            if now - item.heldAt < minimumHold {
                 keep.append(item)
-            } else if lastKnobReport < item.at - 0.02 {
+            } else if !knobReported(near: item.time) {
                 // No knob report around it: a real keyboard key, pass it on.
                 item.event.setIntegerValueField(.eventSourceUserData, value: ownEventTag)
                 item.event.post(tap: .cgSessionEventTap)

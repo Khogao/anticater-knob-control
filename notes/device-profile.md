@@ -114,3 +114,6 @@ UsagePage 1, Usage 6 (Generic Desktop / Keyboard)
   release, plus an array element (`usage=0xffffffff`) carrying the same usage as its value.
 - Because the device is not seized, macOS still acts on these keys; the fork drops the
   resulting system-defined key events with a session event tap.
+- Those events are `NX_SYSDEFINED` subtype 8 with key type 0 / 1 (volume), 7 (mute) and
+  2 / 3 (brightness). `CGEvent.timestamp` equals the HID report's
+  `IOHIDValueGetTimeStamp` converted to nanoseconds, so the two can be matched exactly.

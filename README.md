@@ -32,15 +32,22 @@ So when the seize fails, this fork:
 1. Opens the knob again with a fresh HID manager, without a seize. Reusing the manager
    whose seize failed delivered no input at all.
 2. Installs a session event tap that drops the volume, mute and brightness keys macOS
-   generates for the knob, by matching them in time against the knob's HID reports.
+   generates for the knob. A key is the knob's when one of the knob's HID reports
+   carries the same timestamp; on the tested unit the two match to the millisecond.
    Only the mapped action runs.
 
-Volume keys on a real keyboard still work; they are held for about 60 ms while the app
+The tap and a second, listen-only HID manager run on their own thread and compare the
+events' own timestamps. Comparing arrival times on the main thread did not work: while
+actions run, the main thread lags by hundreds of milliseconds and the knob's keys were
+let through.
+
+Volume keys on a real keyboard still work; they are held for about 50 ms while the app
 checks whether the knob produced them.
 
-**Tested:** with a VK-01 (`05AC:022C`, Bluetooth LE, macOS 15) the app receives the
-knob's input and runs the frontmost app's mapping. **Not yet confirmed:** that the
-system volume stays put while a remapped gesture runs.
+**Tested** with a VK-01 (`05AC:022C`, Bluetooth LE, macOS 15, MonitorControl running):
+the app receives the knob's input, runs the frontmost app's mapping, and hold + rotate
+no longer changes the display brightness. **Not separately confirmed:** that a remapped
+plain rotation leaves the system volume untouched; it goes through the same code path.
 
 ## Requirements
 
