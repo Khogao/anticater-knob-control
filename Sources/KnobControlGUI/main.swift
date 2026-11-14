@@ -2447,7 +2447,15 @@ private enum ActionExecutor {
     private static func sendKeys(_ keys: [String]) -> ActionRunResult {
         let normalized = keys.map { $0.lowercased() }
         if normalized.count == 1, SystemAudioController.canHandle(normalized[0]) {
-            return SystemAudioController.handle(normalized[0])
+            let result = SystemAudioController.handle(normalized[0])
+            // Outputs such as DisplayPort / HDMI monitors have no software volume.
+            // Fall back to the real media key so macOS, or a tool like
+            // MonitorControl that drives the monitor over DDC, handles it.
+            if !result.ok, let media = mediaKeyTypes[normalized[0]] {
+                sendMediaKey(media)
+                return .success("System \(displayKeyName(normalized[0])) key (output device has no software volume)")
+            }
+            return result
         }
 
         if normalized.count == 1, let media = mediaKeyTypes[normalized[0]] {
@@ -2562,6 +2570,7 @@ private let modifierFlags: [String: CGEventFlags] = [
 
 private let mediaKeyTypes: [String: Int] = [
     "volume_up": 0, "volume_down": 1, "mute": 7,
+    "brightness_up": 2, "brightness_down": 3,
     "play_pause": 16, "next_track": 17, "previous_track": 18
 ]
 
@@ -3067,6 +3076,8 @@ private func displayKeyName(_ token: String) -> String {
     case "fn": return "fn"
     case "volume_down": return "Volume Down"
     case "volume_up": return "Volume Up"
+    case "brightness_down": return "Brightness Down"
+    case "brightness_up": return "Brightness Up"
     case "play_pause": return "Play/Pause"
     case "previous_track": return "Previous Track"
     case "next_track": return "Next Track"
@@ -3108,6 +3119,8 @@ private func tokenFromDisplayName(_ value: String) -> String? {
     case "空格", "space": return "space"
     case "volume down": return "volume_down"
     case "volume up": return "volume_up"
+    case "brightness down": return "brightness_down"
+    case "brightness up": return "brightness_up"
     case "play/pause": return "play_pause"
     case "previous track": return "previous_track"
     case "next track": return "next_track"

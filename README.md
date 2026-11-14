@@ -96,6 +96,13 @@ tccutil reset Accessibility cc.codex.anticater-knob-control
   left, hold + rotate right.
 - Action types: shortcut, key (including media keys), mouse click, scroll, shell
   command, no action.
+- Media key names: `volume_up`, `volume_down`, `mute`, `brightness_up`,
+  `brightness_down`, `play_pause`, `next_track`, `previous_track`.
+- Volume is set through Core Audio. When the output device has no software volume
+  (a DisplayPort or HDMI monitor), the app sends the real volume key instead, so macOS
+  or a tool such as MonitorControl handles it.
+- Because the knob's own keys are blocked, hold + rotate only changes the brightness
+  if a profile maps it to `brightness_up` / `brightness_down`.
 - *Quick templates* fill a profile for browsers, code editors, media, design and video
   timelines.
 - *Save config* writes `~/Library/Application Support/ANTICATER Knob Control/app-mapping.json`.
