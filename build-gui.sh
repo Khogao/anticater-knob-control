@@ -17,7 +17,7 @@ cat > "$APP_DIR/Contents/Info.plist" <<'PLIST'
 <plist version="1.0">
 <dict>
   <key>CFBundleDevelopmentRegion</key>
-  <string>zh_CN</string>
+  <string>en</string>
   <key>CFBundleExecutable</key>
   <string>ANTICATERKnobControl</string>
   <key>CFBundleIdentifier</key>
@@ -25,7 +25,7 @@ cat > "$APP_DIR/Contents/Info.plist" <<'PLIST'
   <key>CFBundleInfoDictionaryVersion</key>
   <string>6.0</string>
   <key>CFBundleName</key>
-  <string>手轮控制台</string>
+  <string>Knob Console</string>
   <key>CFBundlePackageType</key>
   <string>APPL</string>
   <key>CFBundleShortVersionString</key>

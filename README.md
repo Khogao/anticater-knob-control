@@ -1,260 +1,113 @@
-# 手轮控制台
+# Knob Console
 
-把 `ANTICATER_MINI` 蓝牙手轮变成 macOS 上的应用快捷控制器。
+Turns an Anticater VK-01 knob into a per-app shortcut controller on macOS: volume
+everywhere, tab switching in the browser, brush size in Photoshop, and so on.
 
-你可以为不同 App 配置不同动作。例如：
+This is a fork of [dreamug/anticater-knob-control](https://github.com/dreamug/anticater-knob-control).
+The original Chinese README is kept as [README.zh-CN.md](README.zh-CN.md); it describes
+upstream behaviour, not this fork.
 
-- 浏览器里旋转切换标签页
-- Cursor / VS Code 里旋转切换编辑器
-- Photoshop 里旋转调整画笔
-- DaVinci Resolve 里旋转移动时间线
-- 全局默认状态下控制音量、媒体播放
+## What this fork changes
 
-支持 5 个手轮动作：
+- **English UI.** Every string in the window, menu bar menu, overlays and diagnostic
+  report is translated. Chinese key names in existing config files are still accepted.
+- **Automatic per-app switching.** An app's mapping applies as soon as that app is
+  frontmost. Upstream needs a triple press to lock onto one app. The old behaviour is
+  still available: turn off *Auto-switch by frontmost app* in *Listening tools* or the
+  menu bar menu.
+- **Works with knobs that enumerate as a keyboard.** See below.
+- **Show console reopens the window.** Upstream only activated the app, so a closed
+  window could not be brought back.
 
-```text
-左旋
-右旋
-按下
-按住左旋
-按住右旋
-```
+## Knobs that enumerate as a keyboard
 
-## 系统要求
+Upstream was written for a VK-01 whose Bluetooth interface reports itself as a mouse,
+which a normal app can open exclusively. The unit this fork was tested with reports
+`usagePage=0x0001 usage=0x0006` (keyboard) over USB, the 2.4G dongle and Bluetooth
+alike, and macOS only lets root seize keyboard-class devices: the seize fails with
+`0xe00002c1`.
 
-- macOS
-- ANTICATER_MINI 手轮
-- Xcode Command Line Tools
+So when the seize fails, this fork:
 
-如果没有安装 Xcode Command Line Tools，可以运行：
+1. Opens the knob again with a fresh HID manager, without a seize. Reusing the manager
+   whose seize failed delivered no input at all.
+2. Installs a session event tap that drops the volume, mute and brightness keys macOS
+   generates for the knob, by matching them in time against the knob's HID reports.
+   Only the mapped action runs.
 
-```bash
-xcode-select --install
-```
+Volume keys on a real keyboard still work; they are held for about 60 ms while the app
+checks whether the knob produced them.
 
-## 下载和运行
+**Tested:** with a VK-01 (`05AC:022C`, Bluetooth LE, macOS 15) the app receives the
+knob's input and runs the frontmost app's mapping. **Not yet confirmed:** that the
+system volume stays put while a remapped gesture runs.
 
-克隆仓库：
+## Requirements
 
-```bash
-git clone https://github.com/dreamug/anticater-knob-control.git
-cd anticater-knob-control
-```
+- macOS 14 or later
+- Xcode Command Line Tools (`xcode-select --install`)
+- An Anticater VK-01 with vendor/product ID `05AC:022C`
 
-启动图形界面：
+## Build and run
 
 ```bash
 ./run-gui.sh
 ```
 
-这个命令会自动构建并打开 `手轮控制台.app`。
-
-也可以手动构建：
+or
 
 ```bash
 ./build-gui.sh
 open build/ANTICATERKnobControl.app
 ```
 
-构建后的 App 在：
+## Permissions
 
-```text
-build/ANTICATERKnobControl.app
-```
+The app needs two permissions in System Settings → Privacy & Security:
 
-真正的可执行文件在：
+- **Input Monitoring** to read the knob.
+- **Accessibility** to send shortcuts, scroll, and block the knob's native keys.
 
-```text
-build/ANTICATERKnobControl.app/Contents/MacOS/ANTICATERKnobControl
-```
+Click *Start listening*, allow Input Monitoring, use *Permissions → Request
+Accessibility*, then quit and reopen the app.
 
-授权输入监控时，请优先选择整个 `build/ANTICATERKnobControl.app`。
-
-构建脚本会优先使用本机的 `Apple Development` 证书签名；如果没有可用证书，会退回 ad-hoc 签名。也可以手动指定签名身份：
+The build is ad-hoc signed unless you have an Apple Development certificate, so every
+rebuild is a new app as far as macOS is concerned. The switches in System Settings
+still look enabled but belong to the old build. After a rebuild, clear them and grant
+again:
 
 ```bash
-ANTICATER_CODE_SIGN_IDENTITY="Apple Development: your@email.com (TEAMID)" ./build-gui.sh
+tccutil reset ListenEvent cc.codex.anticater-knob-control
+tccutil reset Accessibility cc.codex.anticater-knob-control
 ```
 
-## 第一次使用
+## Using it
 
-1. 打开 `手轮控制台`
-2. 点击右上角「启动监听」
-3. 如果 macOS 弹出权限提示，请允许
-4. 如果没有弹窗，请手动打开权限
+- The sidebar lists *Global default* and each configured app. *Discovered apps* lets
+  you add more; *Add current app* adds whatever is frontmost.
+- Each profile maps five gestures: rotate left, rotate right, press, hold + rotate
+  left, hold + rotate right.
+- Action types: shortcut, key (including media keys), mouse click, scroll, shell
+  command, no action.
+- *Quick templates* fill a profile for browsers, code editors, media, design and video
+  timelines.
+- *Save config* writes `~/Library/Application Support/ANTICATER Knob Control/app-mapping.json`.
+- Quit the vendor's ANTICATER app while using this one.
 
-需要开启：
+## Diagnostics
 
-```text
-系统设置 -> 隐私与安全性 -> 辅助功能
-系统设置 -> 隐私与安全性 -> 输入监控
-```
+*Listening tools → Copy diagnostic report* copies the permission state, the result of
+the seize attempt, event counters and the most recent raw HID events. If *Raw events*
+stays at 0 while you turn the knob, the app is not receiving input.
 
-把 `手轮控制台` 加进去后，重新打开 App 或再次点击「启动监听」。
+## Known issues
 
-其中「输入监控」负责让 App 读取手轮事件；「辅助功能」负责让 App 发出快捷键、媒体键、鼠标和滚动动作。如果 dashboard 能看到手轮输入，但动作没有生效，请优先检查「辅助功能」是否已允许。
+- After the app sends a shortcut with modifiers (for example Ctrl+Shift+Tab), the next
+  gesture can be read as if those modifiers were held. Mappings that do not use the
+  *Modifier* edit mode are unaffected.
+- There is no debounce for rotation.
 
-## 配置应用动作
+## License
 
-左侧会显示：
-
-- 全局默认
-- 已配置应用
-- 发现的应用
-
-使用方式：
-
-1. 在「发现的应用」里搜索你要配置的 App
-2. 点击应用，把它加入配置列表
-3. 在右侧查看当前 App、设备状态和最近动作
-4. 为 5 个手轮动作设置行为
-5. 点击「保存配置」
-
-如果想快速开始，可以在右侧的「快速模板」里选择：
-
-```text
-浏览器
-写代码
-媒体
-设计
-剪辑
-```
-
-然后点击「应用到当前配置」。如果你正在使用某个 App，也可以点击「为当前应用创建并套用」，自动给当前激活的 App 建立配置。
-
-## 三击锁定应用映射
-
-应用不会在你切换窗口时立刻切换映射。默认情况下，所有 App 都使用「全局默认」。
-
-如果想启用某个 App 的专属映射：
-
-1. 切到那个 App
-2. 连续按下手轮三次。相邻两次按下间隔不要超过约 1.2 秒
-3. 右侧「三击锁定」会显示已锁定的 App
-
-锁定后，只有这个 App 在前台时才使用它自己的映射。切到其他 App 时，仍然使用「全局默认」。
-
-如果想恢复到所有 App 都使用「全局默认」，在已锁定的 App 里再次快速按下手轮三次，或者点击界面里的「解除三击锁定」。
-
-## 输入监视
-
-右侧 dashboard 会显示「输入监视」：
-
-```text
-原始：收到的 HID 原始事件数量
-识别：成功识别成手轮动作的数量
-忽略：收到但没有作为动作执行的事件数量
-左旋 / 右旋 / 按下 / 按住左旋 / 按住右旋：每个动作的计数
-```
-
-如果旋转或按下手轮时「原始」不增加，请先检查是否已经点击「启动监听」，以及是否有其他手轮工具正在占用设备。
-
-如果「启动监听」显示 `0xe00002e2` 之类的失败码，通常是 macOS 没有把输入监控权限真正给到图形界面。请到：
-
-```text
-系统设置 -> 隐私与安全性 -> 输入监控
-```
-
-删除旧的「手轮控制台」，重新添加当前仓库里的：
-
-```text
-build/ANTICATERKnobControl.app
-```
-
-然后完全退出并重新打开 App。
-
-也可以在 App 右侧点击「请求权限」或「打开输入监控」。
-
-如果动作显示 `需要辅助功能权限 / failed`，请点击「请求辅助功能」或「打开辅助功能」，然后允许 `手轮控制台`。
-
-如果「原始」增加但「识别」不增加，可以把界面里显示的最后一条 HID 原始事件发到 issue 里。
-
-动作类型：
-
-```text
-快捷键：发送组合键，例如 ⌘ + ⇧ + P
-按键：发送单个按键或媒体键
-鼠标：点击当前鼠标位置
-滚动：发送滚轮滚动
-命令：执行 shell 命令
-无动作：忽略这个手势
-```
-
-配置会保存到：
-
-```text
-config/app-mapping.json
-```
-
-仓库里提供了示例配置：
-
-```text
-config/app-mapping.example.json
-```
-
-## 录制组合键
-
-在某个动作旁边点击「录制组合键」，然后直接按下你想绑定的快捷键。
-
-例如：
-
-```text
-Command + Shift + P
-Control + Tab
-Command + [
-```
-
-界面会自动填入对应组合键。
-
-## 菜单栏使用
-
-启动图形界面后，菜单栏会出现一个手轮图标。你可以在菜单里快速：
-
-```text
-启动监听
-停止监听
-打开主窗口
-退出应用
-```
-
-## 常见问题
-
-### 点击「启动监听」后没有反应
-
-请检查权限：
-
-```text
-系统设置 -> 隐私与安全性 -> 辅助功能
-系统设置 -> 隐私与安全性 -> 输入监控
-```
-
-开启后重新启动 App。
-
-### 手轮动作仍然改变系统音量或亮度
-
-如果没有成功独占设备，macOS 可能仍会收到原本的媒体键事件。请确认：
-
-- 没有同时打开官方 ANTICATER 配置软件
-- 已给 `手轮控制台` 输入监控权限
-- 重新点击「启动监听」
-
-### 找不到某个 App
-
-点击「刷新发现」，或手动输入该 App 的 bundle id 后点击「添加」。
-
-## 开发者工具
-
-仓库里还保留了一些诊断脚本：
-
-```bash
-./run-hid-probe.sh
-./run-input-probe.sh
-./run-knob-monitor.sh
-./run-knob-mapper.sh
-```
-
-普通用户只需要使用：
-
-```bash
-./run-gui.sh
-```
+Upstream does not include a license file. This fork adds none; treat the code
+accordingly.
