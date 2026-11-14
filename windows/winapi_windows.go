@@ -13,33 +13,16 @@ var (
 	kernel32 = syscall.NewLazyDLL("kernel32.dll")
 	shell32  = syscall.NewLazyDLL("shell32.dll")
 	advapi32 = syscall.NewLazyDLL("advapi32.dll")
-	gdi32    = syscall.NewLazyDLL("gdi32.dll")
-	comctl32 = syscall.NewLazyDLL("comctl32.dll")
 
-	pGetMessageTime       = user32.NewProc("GetMessageTime")
-	pPostMessageW         = user32.NewProc("PostMessageW")
-	pLoadImageW           = user32.NewProc("LoadImageW")
-	pGetSystemMetrics     = user32.NewProc("GetSystemMetrics")
-	pSendMessageW         = user32.NewProc("SendMessageW")
-	pSetWindowTextW       = user32.NewProc("SetWindowTextW")
-	pGetWindowTextLengthW = user32.NewProc("GetWindowTextLengthW")
-	pShowWindow           = user32.NewProc("ShowWindow")
-	pDestroyWindow        = user32.NewProc("DestroyWindow")
-	pIsDialogMessageW     = user32.NewProc("IsDialogMessageW")
-	pEnumWindows          = user32.NewProc("EnumWindows")
-	pIsWindowVisible      = user32.NewProc("IsWindowVisible")
-	pEnableWindow         = user32.NewProc("EnableWindow")
-	pSetFocus             = user32.NewProc("SetFocus")
-	pGetDC                = user32.NewProc("GetDC")
-	pReleaseDC            = user32.NewProc("ReleaseDC")
-	pLoadCursorW          = user32.NewProc("LoadCursorW")
-	pSetProcessDPIAware   = user32.NewProc("SetProcessDPIAware")
-	pGetDeviceCaps        = gdi32.NewProc("GetDeviceCaps")
-	pCreateFontW          = gdi32.NewProc("CreateFontW")
-	pInitCommonControls   = comctl32.NewProc("InitCommonControls")
-	pCreateActCtxW        = kernel32.NewProc("CreateActCtxW")
-	pActivateActCtx       = kernel32.NewProc("ActivateActCtx")
-	pGetSystemDirectoryW  = kernel32.NewProc("GetSystemDirectoryW")
+	pGetMessageTime   = user32.NewProc("GetMessageTime")
+	pPostMessageW     = user32.NewProc("PostMessageW")
+	pLoadImageW       = user32.NewProc("LoadImageW")
+	pGetSystemMetrics = user32.NewProc("GetSystemMetrics")
+	pShowWindow       = user32.NewProc("ShowWindow")
+	pIsIconic         = user32.NewProc("IsIconic")
+	pFindWindowW      = user32.NewProc("FindWindowW")
+	pEnumWindows      = user32.NewProc("EnumWindows")
+	pIsWindowVisible  = user32.NewProc("IsWindowVisible")
 
 	pRegisterClassExW          = user32.NewProc("RegisterClassExW")
 	pCreateWindowExW           = user32.NewProc("CreateWindowExW")
@@ -83,47 +66,22 @@ var (
 )
 
 const (
-	wsChild             uint32 = 0x40000000
-	wsVisible           uint32 = 0x10000000
-	wsTabStop           uint32 = 0x00010000
-	wsVScroll           uint32 = 0x00200000
-	wsCaption                  = 0x00C00000
-	wsSysMenu                  = 0x00080000
-	wsMinimizeBox              = 0x00020000
-	wsExClientEdge      uint32 = 0x00000200
-	esAutoHScroll       uint32 = 0x0080
-	cbsDropDownList     uint32 = 0x0003
-	cbsHasStrings       uint32 = 0x0200
-	lbsNotify           uint32 = 0x0001
-	lbsNoIntegralHeight uint32 = 0x0100
-
-	wmClose        = 0x0010
-	wmSetFont      = 0x0030
-	cbAddString    = 0x0143
-	cbGetCurSel    = 0x0147
-	cbSetCurSel    = 0x014E
-	lbAddString    = 0x0180
-	lbInsertString = 0x0181
-	lbDeleteString = 0x0182
-	lbSetCurSel    = 0x0186
-	lbGetCurSel    = 0x0188
-
-	wmDestroy        = 0x0002
-	wmCommand        = 0x0111
-	wmTimer          = 0x0113
-	wmInput          = 0x00FF
-	wmApp            = 0x8000
-	wmTray           = wmApp + 1
-	wmSwitchLanguage = wmApp + 2 // wParam: 0 = Vietnamese, 1 = English
-	wmLButtonUp      = 0x0202
-	wmRButtonUp      = 0x0205
-	wmKeyDown        = 0x0100
-	wmSysKeyDown     = 0x0104
-	whKeyboardLL     = 13
-	ridInput         = 0x10000003
-	ridiDeviceName   = 0x20000007
-	ridevInputSink   = 0x00000100
-	rimTypeHID       = 2
+	wmDestroy      = 0x0002
+	wmTimer        = 0x0113
+	wmInput        = 0x00FF
+	wmApp          = 0x8000
+	wmTray         = wmApp + 1
+	wmUICall       = wmApp + 2 // the settings page has work queued for this thread
+	wmShowUI       = wmApp + 3 // a second launch asks the running app to show settings
+	wmLButtonUp    = 0x0202
+	wmRButtonUp    = 0x0205
+	wmKeyDown      = 0x0100
+	wmSysKeyDown   = 0x0104
+	whKeyboardLL   = 13
+	ridInput       = 0x10000003
+	ridiDeviceName = 0x20000007
+	ridevInputSink = 0x00000100
+	rimTypeHID     = 2
 
 	inputMouse    = 0
 	inputKeyboard = 1
@@ -384,13 +342,16 @@ func appIcon(small bool) uintptr {
 	if size == 0 {
 		size = 32
 	}
-	path := strings.TrimSuffix(configPath(), "knob-config.json") + "AnticaterKnob.ico"
 	// IMAGE_ICON = 1, LR_LOADFROMFILE = 0x10
-	if h, _, _ := pLoadImageW.Call(0, uintptr(unsafe.Pointer(u16(path))), 1, size, size, 0x10); h != 0 {
+	if h, _, _ := pLoadImageW.Call(0, uintptr(unsafe.Pointer(u16(iconPath()))), 1, size, size, 0x10); h != 0 {
 		return h
 	}
 	h, _, _ := pLoadIconW.Call(0, idiApplication)
 	return h
+}
+
+func iconPath() string {
+	return strings.TrimSuffix(configPath(), "knob-config.json") + "AnticaterKnob.ico"
 }
 
 func shellOpen(path string) {

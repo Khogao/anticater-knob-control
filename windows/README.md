@@ -66,7 +66,9 @@ go build -trimpath -ldflags "-s -w -H=windowsgui" -o AnticaterKnob.exe .
 
 - `-H=windowsgui` để app không mở cửa sổ console. Khi cần xem lỗi khởi động, build không có cờ này.
 - Trên macOS / Linux: `./build.sh` (biên dịch chéo, kết quả giống hệt).
-- Mọi file mã đều có hậu tố `_windows.go`, nên `go build` trên hệ khác mà không đặt `GOOS=windows` sẽ báo không có file.
+- `go.mod` nằm ở thư mục gốc repo (module `anticater-knob`); app Windows là gói `./windows`, trang cài đặt dùng chung là gói `./ui`.
+  Các script build vẫn chạy từ thư mục `windows/` như trước.
+- Mọi file mã trong `windows/` đều có hậu tố `_windows.go`, nên `go build` trên hệ khác mà không đặt `GOOS=windows` sẽ báo không có file.
 - Phải thoát app đang chạy trước khi build lại, vì Windows khoá file exe đang chạy.
 
 Kiểm tra tĩnh:
@@ -104,7 +106,7 @@ Giao diện có hai ngôn ngữ: tiếng Việt và tiếng Anh. Lần chạy đ
 (Windows tiếng Việt thì tiếng Việt, còn lại tiếng Anh). Đổi bằng một trong ba cách:
 
 - Menu ở khay: mục "Language: English" (khi đang ở tiếng Việt) hoặc "Ngôn ngữ: Tiếng Việt" (khi đang ở tiếng Anh).
-- Cửa sổ cài đặt: ô "Ngôn ngữ / Language" ở góc dưới phải. Cửa sổ dựng lại ngay, các thay đổi chưa lưu được giữ.
+- Cửa sổ cài đặt: menu "Công cụ" → "Language: English" / "Ngôn ngữ: Tiếng Việt". Trang đổi ngay, các thay đổi chưa lưu được giữ.
 - File cấu hình: `"language": "vi"` hoặc `"en"`; bỏ khoá này để theo Windows.
 
 Lựa chọn được ghi vào `knob-config.json` ngay khi đổi. Menu, cửa sổ cài đặt, bảng Chọn nhanh, mẫu nhanh và các thông báo
@@ -113,18 +115,33 @@ theo bản tiếng Việt.
 
 **Cửa sổ cài đặt**
 
-- **Cột trái:** danh sách hồ sơ: "Mặc định (mọi app)" và từng app. "Thêm app…" liệt kê các app đang có cửa sổ;
-  "Xoá" bỏ hồ sơ app đang chọn (không hỏi lại, nhưng chỉ có hiệu lực khi bấm Lưu).
-- **Tên exe / Tiêu đề chứa:** khoá của hồ sơ. Để trống "Tiêu đề chứa" là áp dụng cho cả app; điền chữ thì chỉ áp dụng
+Cửa sổ cài đặt là một trang web nhúng sẵn trong file exe (gói `ui/`, dùng chung cho bản Windows và bản Linux sau này),
+bố cục theo app macOS. App mở một máy chủ chỉ nghe trên `127.0.0.1` (cổng 47815, bận thì lấy cổng trống khác) rồi mở
+trang trong cửa sổ Edge chế độ app: không tab, không thanh địa chỉ. Máy không có Edge thì dùng Chrome; không có cả hai
+thì trang mở thành một tab của trình duyệt mặc định. Chạy `AnticaterKnob.exe` lần nữa khi app đang chạy cũng mở cửa sổ này.
+
+- **Thanh bên:** "Mặc định chung", các app đã có hồ sơ, và "App đang chạy" (bấm một app để tạo hồ sơ cho nó). Bên dưới
+  có ô tìm app, nút Làm mới, ô nhập tên exe bằng tay, "Thêm app hiện tại" và "Xoá app đang chọn".
+- **Tên exe / Tiêu đề cửa sổ chứa:** khoá của hồ sơ app. Để trống tiêu đề là áp dụng cho cả app; điền chữ thì chỉ áp dụng
   khi tiêu đề cửa sổ có chữ đó (ví dụ `chrome.exe` + `YouTube`).
-- **Năm dòng thao tác:** Xoay trái, Xoay phải, Nhấn, Giữ + xoay trái, Giữ + xoay phải. Mỗi dòng có:
+- **Bảng trạng thái:** đang lắng nghe hay tạm dừng, núm đã gửi tín hiệu chưa, app phía trước, hồ sơ đang áp dụng cho app đó,
+  hook chặn phím gốc, tín hiệu gần nhất. "App phía trước" là app dùng gần nhất, không tính chính cửa sổ cài đặt.
+- **Theo dõi tín hiệu:** bộ đếm tín hiệu thô, số thao tác nhận diện được và bộ đếm riêng cho từng thao tác; ô của thao tác
+  vừa nhận sẽ nháy sáng.
+- **Mẫu nhanh:** điền một cặp trái/phải cho "Xoay" hoặc "Giữ + xoay", cho hồ sơ đang chọn hoặc tạo luôn hồ sơ cho app phía trước.
+- **Công cụ:** khôi phục âm lượng cho hồ sơ mặc định, xoá bộ đếm, báo cáo chẩn đoán, mở file cấu hình, mở log,
+  khởi động cùng hệ thống, đổi ngôn ngữ.
+- **Năm thẻ thao tác:** Xoay trái, Xoay phải, Nhấn, Giữ + xoay trái, Giữ + xoay phải. Mỗi thẻ có:
   - *Hành động*: loại hành động. "(theo mặc định)" nghĩa là hồ sơ app không ghi thao tác này, lấy từ hồ sơ mặc định.
-  - *Phím / nút chuột / lệnh*: phím nối bằng dấu `+` (`ctrl+shift+tab`), hoặc `left`/`right`/`middle`, hoặc dòng lệnh.
-  - *dy*, *dx*: số nấc cuộn. *Mỗi*: chỉ chạy mỗi N nấc.
-  - *Chọn nhanh*: 33 hành động có sẵn; chọn một mục là dòng được điền đủ.
-- **Mẫu nhanh:** điền một cặp trái/phải cho "Xoay" hoặc "Giữ + xoay".
-- **Tín hiệu gần nhất:** cập nhật ngay khi núm gửi tín hiệu; dùng để biết núm có được nhận hay không.
-- **Lưu:** ghi file và áp dụng. Đóng cửa sổ khi chưa lưu thì thay đổi bị bỏ, không có hỏi lại.
+  - *Chọn nhanh*: 33 hành động có sẵn, chia nhóm; chọn một mục là thẻ được điền đủ.
+  - Các ô theo loại: phím nối bằng dấu `+` (`ctrl+shift+tab`) kèm nút "Ghi phím…" để bấm tổ hợp thay vì gõ tên;
+    số nấc cuộn dọc/ngang và phím giữ kèm; nút chuột; dòng lệnh. *Mỗi N nấc*: chỉ chạy mỗi N nấc. *Ghi chú*: mô tả tuỳ ý.
+- **Lưu cấu hình:** kiểm tra, ghi file và áp dụng; nút đổi màu khi có thay đổi chưa lưu. Lỗi kiểm tra hiện ở thanh dưới cùng.
+  Đóng cửa sổ khi chưa lưu thì thay đổi bị bỏ, không có hỏi lại. **Nạp lại** đọc lại file, bỏ phần chưa lưu.
+
+API của trang chỉ nhận yêu cầu mang mã truy cập sinh ngẫu nhiên mỗi lần app chạy (truyền qua phần `#` của địa chỉ) và
+đúng tên máy chủ `127.0.0.1:<cổng>`, vì cấu hình có thể chứa lệnh shell. Cửa sổ còn mở từ lần chạy trước sẽ báo
+"Phiên này đã cũ"; mở lại từ biểu tượng ở khay.
 
 ## 4. Checklist thử lần đầu
 
@@ -144,7 +161,7 @@ và giữ lại `knob-diagnostic.txt` cùng `knob.log`.
 | 9 | Chuột trái vào biểu tượng | Cửa sổ cài đặt mở, chữ rõ, không bị cắt | Mục 9.6 |
 | 10 | Trong cửa sổ: chọn một app, dùng Chọn nhanh, bấm Lưu | Dòng trạng thái "Đã lưu và áp dụng…", file JSON đổi | Hộp thoại lỗi ghi rõ dòng sai |
 | 11 | Bật "Khởi động cùng Windows", đăng xuất, đăng nhập lại | App tự chạy | Kiểm tra giá trị registry ở mục 3 |
-| 12 | Đổi ngôn ngữ từ menu khay, rồi từ ô trong cửa sổ cài đặt | Menu và cửa sổ đổi ngôn ngữ; thay đổi chưa lưu vẫn còn; `knob-config.json` có khoá `language` | Cửa sổ biến mất hoặc treo → xem `reopenSettings` và `switchLanguage` |
+| 12 | Đổi ngôn ngữ từ menu khay, rồi từ menu Công cụ trong cửa sổ cài đặt | Menu và cửa sổ đổi ngôn ngữ; thay đổi chưa lưu vẫn còn; `knob-config.json` có khoá `language` | Trang không đổi → xem `setLanguage` trong `ui/web/app.js` và `switchLanguage` |
 
 ## 5. Cấu hình
 
@@ -259,8 +276,11 @@ Các hằng số nằm đầu `main_windows.go`: `knobWindowMs = 60`, `pendingHo
 | `winapi_windows.go` | Khai báo hàm và cấu trúc Win32 qua `syscall.NewLazyDLL` (không cgo). Tiện ích: `foregroundApp`, `windowApp`, `rawDeviceName`, `sendKey`, `sendWheel`, `sendMouseButton`, `setAutostart`, `shellOpen` |
 | `config_windows.go` | Kiểu `Config`, `Action`; `loadConfig`, `validate`; `matchesDevice` (khớp `VID:PID` trong đường dẫn thiết bị); `resolve` (chọn hành động theo app và tiêu đề) |
 | `actions_windows.go` | Bảng tên phím → mã phím ảo (`namedKeys`, `lookupKey`), `perform` chạy hành động |
-| `settings_windows.go` | Cửa sổ cài đặt bằng Win32 thuần: tạo control (`mk`, `combo`, `editBox`), nạp/ghi hồ sơ (`loadProfile`, `commitProfile`, `readRow`, `setRow`), `quickPicks`, `templates`, `saveSettings`, `settingsProc`; `initUI` và `enableVisualStyles` |
-| `lang_windows.go` | Hai ngôn ngữ: `L("tiếng Việt", "English")` chọn chuỗi theo ngôn ngữ hiện tại; kiểu `text` cho các bảng; `setLanguage` |
+| `ui_windows.go` | Cầu nối giữa lõi và trang cài đặt: `uiBackend` (trạng thái, đọc/ghi cấu hình, danh sách app, lệnh), `onMain` đưa yêu cầu từ luồng HTTP về luồng chính, `openUI` mở hoặc đưa cửa sổ lên trước, `runningApps` |
+| `lang_windows.go` | Hai ngôn ngữ cho menu khay và thông báo: `L("tiếng Việt", "English")` chọn chuỗi theo ngôn ngữ hiện tại; `setLanguage` |
+| `../ui/ui.go` | Gói dùng chung, không phụ thuộc hệ điều hành: máy chủ HTTP nội bộ, kiểm tra mã truy cập, giao diện `Backend` mà mỗi nền tảng tự cài |
+| `../ui/web/` | Trang cài đặt: `index.html`, `app.css`, `app.js` (bố cục, mẫu nhanh, bảng Chọn nhanh, ghi phím, hai ngôn ngữ) |
+| `../ui/uidev/` | `go run ./ui/uidev` chạy trang với dữ liệu giả lập, để sửa giao diện trên máy bất kỳ mà không cần núm |
 | `default-config.json` | Cấu hình mặc định, nhúng vào exe bằng `//go:embed` |
 | `AnticaterKnob.ico` | Icon, đọc lúc chạy bởi `appIcon()` trong `winapi_windows.go`; sinh từ `../assets/logo.svg`, không nằm trong git |
 | `build.bat`, `build.sh` | Script build cho Windows và cho macOS/Linux |
@@ -332,13 +352,13 @@ gán thao tác tới phím tắt của một công cụ DDC như Twinkle Tray ho
 
 ### 9.6 Cửa sổ cài đặt
 
-Chưa từng được nhìn thấy trên Windows. Rủi ro:
-
-- **Kiểu nút cũ:** `enableVisualStyles` lấy manifest giao diện từ `shell32.dll` (tài nguyên số 124). Nếu thất bại, control có kiểu
-  Windows cũ nhưng vẫn dùng được. Cách chắc chắn hơn là nhúng manifest vào exe bằng file `.syso`.
-- **DPI:** app gọi `SetProcessDPIAware` và nhân mọi toạ độ theo DPI hệ thống (`sx()`). Trên máy nhiều màn hình khác DPI có thể lệch.
-- **Bố cục:** toạ độ đặt tay trong `openSettings`; cửa sổ rộng 1096 đơn vị. Chữ tiếng Việt dài có thể bị cắt ở nhãn.
-- **Danh sách "Thêm app…":** dựa vào `EnumWindows`; app UWP có thể hiện là `ApplicationFrameHost.exe`.
+- **Cần Edge hoặc Chrome để có cửa sổ riêng.** Thiếu cả hai, trang mở thành tab trong trình duyệt mặc định; mọi chức năng vẫn chạy.
+- **Kích thước cửa sổ:** `--window-size` chỉ có tác dụng lần mở đầu; về sau Edge nhớ vị trí và kích thước theo địa chỉ trang.
+  Nếu cổng 47815 bận, app dùng cổng khác và Edge coi đó là một trang mới.
+- **Ghi phím:** tổ hợp mà Windows hoặc trình duyệt giữ riêng (Alt + Tab, Win + D, Ctrl + W…) không ghi được bằng nút
+  "Ghi phím…"; gõ tên phím vào ô Phím.
+- **Danh sách "App đang chạy":** dựa vào `EnumWindows`; app UWP có thể hiện là `ApplicationFrameHost.exe`.
+- **Icon app trong thanh bên:** hiện là ô màu kèm chữ cái đầu, chưa lấy icon thật của file exe.
 
 ### 9.7 App chạy quyền quản trị
 
@@ -352,8 +372,8 @@ Theo thứ tự ưu tiên:
 1. Chạy checklist mục 4 và sửa các lỗi lộ ra; đây là việc duy nhất thực sự chặn đường.
 2. Đo độ lệch mốc thời gian giữa `WM_INPUT` và hook trên Windows, chỉnh `knobWindowMs` cho sát.
 3. Thử cả ba kiểu kết nối (dây, dongle, Bluetooth), vì đường dẫn thiết bị và dạng gói có thể khác nhau.
-4. Nhúng manifest và icon vào exe (file `.syso`), thay cho mẹo lấy manifest từ `shell32.dll` và việc đọc icon từ file rời.
-5. Hỏi lại khi đóng cửa sổ cài đặt mà chưa lưu; thêm nút ghi phím tắt bằng cách bấm phím.
+4. Nhúng icon vào exe (file `.syso`), thay cho việc đọc icon từ file rời.
+5. Hỏi lại khi đóng cửa sổ cài đặt mà chưa lưu; hiện icon thật của app trong thanh bên.
 6. Thêm hành động độ sáng qua DDC nếu cần cho màn hình ngoài.
 7. Ký số file exe để hết cảnh báo SmartScreen.
 

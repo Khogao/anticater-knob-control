@@ -23,7 +23,8 @@ upstream behaviour, not this fork.
 
 [`windows/`](windows/) holds a separate Windows app with the same idea, written in Go:
 tray icon, settings window, per-app mappings chosen by the foreground window. It shares
-no code with the macOS app. It compiles but has not been run on Windows yet; its
+no code with the macOS app. Its settings window is a web page embedded in the exe
+([`ui/`](ui/)), laid out like the macOS app and meant to be reused by a Linux app. It compiles but has not been run on Windows yet; its
 [README](windows/README.md) (Vietnamese) has the build steps, a first-run checklist and
 the list of unverified points.
 

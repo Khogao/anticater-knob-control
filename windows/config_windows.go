@@ -217,4 +217,30 @@ func (c *Config) resolve(gesture, exe, title string) (act Action, source string)
 	return Action{Type: "passthrough"}, "default"
 }
 
+// profileFor names the apps entry that best matches a window, or "" when only
+// global applies. resolve can still fall back per gesture; this is the entry
+// shown as "in force" on the settings page.
+func (c *Config) profileFor(exe, title string) string {
+	lexe, ltitle := strings.ToLower(exe), strings.ToLower(title)
+	best, bestLen := "", -1
+	for key := range c.Apps {
+		name, want, hasTitle := strings.Cut(key, "|")
+		if strings.ToLower(strings.TrimSpace(name)) != lexe || lexe == "" {
+			continue
+		}
+		score := 0
+		if hasTitle {
+			want = strings.ToLower(strings.TrimSpace(want))
+			if want == "" || !strings.Contains(ltitle, want) {
+				continue
+			}
+			score = 1 + len(want)
+		}
+		if score > bestLen || (score == bestLen && key < best) {
+			best, bestLen = key, score
+		}
+	}
+	return best
+}
+
 func (a Action) isPassthrough() bool { return a.Type == "passthrough" || a.Type == "" }

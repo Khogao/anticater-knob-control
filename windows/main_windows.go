@@ -16,6 +16,8 @@ import (
 	"syscall"
 	"time"
 	"unsafe"
+
+	"anticater-knob/ui"
 )
 
 const (
@@ -38,6 +40,8 @@ const (
 	cmdDiagnostics = 108
 	cmdLanguage    = 109
 	trayIconID     = 1
+
+	mainClassName = "AnticaterKnobWindow"
 	idiApplication = 32512
 )
 
@@ -203,7 +207,8 @@ func onKnobReport(report []byte, msgTime uint32) {
 	lastKnobMs = tickMs()
 	noteKnobReport(msgTime)
 	rawCount++
-	recentRaw = append(recentRaw, fmt.Sprintf("%s  % x", time.Now().Format("15:04:05.000"), report))
+	lastRawText = fmt.Sprintf("%s  % x", time.Now().Format("15:04:05.000"), report)
+	recentRaw = append(recentRaw, lastRawText)
 	if len(recentRaw) > 30 {
 		recentRaw = recentRaw[len(recentRaw)-30:]
 	}
@@ -226,10 +231,10 @@ func onKnobReport(report []byte, msgTime uint32) {
 		return
 	}
 	recognizedCount++
+	gestureCounts[gesture]++
 	exe, title := currentApp()
 	act, source := cfg.resolve(gesture, exe, title)
 	lastEventText = fmt.Sprintf("%s in %s -> %s", gesture, orDash(exe), describe(act, source))
-	setText(hMonitor, L("Tín hiệu gần nhất: ", "Last knob input: ")+lastEventText)
 	logf("report % x  time=%d  %s  app=%s  -> %s", report, msgTime, gesture, exe, describe(act, source))
 	if act.isPassthrough() || act.Type == "noop" {
 		return
@@ -329,7 +334,7 @@ func flushPending() {
 
 // ---- config -----------------------------------------------------------------
 
-func reloadConfig(announce bool) {
+func reloadConfig(announce bool) error {
 	c, err := loadConfig()
 	if st, serr := os.Stat(configPath()); serr == nil {
 		cfgModTime = st.ModTime()
@@ -339,24 +344,26 @@ func reloadConfig(announce bool) {
 		if cfg == nil {
 			cfg = &Config{Devices: []string{"05AC:022C"}, Global: map[string]Action{}, Apps: map[string]map[string]Action{}}
 		}
-		return
+		return err
 	}
 	cfg = c
+	configRev++
 	setLanguage(cfg.Language)
 	deviceKnown = map[uintptr]bool{}
 	logf("config loaded: %d app entries, devices %v", len(cfg.Apps), cfg.Devices)
 	if announce {
 		balloon("Anticater Knob", fmt.Sprintf(L("Đã nạp lại cấu hình (%d hồ sơ app).", "Config reloaded (%d app entries)."), len(cfg.Apps)))
 	}
+	return nil
 }
 
 func housekeeping() {
 	if st, err := os.Stat(configPath()); err == nil && !st.ModTime().Equal(cfgModTime) {
 		reloadConfig(true)
 	}
-	exe, _ := foregroundApp()
-	if exe != "" && !strings.EqualFold(exe, "explorer.exe") && !strings.EqualFold(exe, selfExeName()) {
-		lastAppExe = exe
+	exe, title := foregroundApp()
+	if exe != "" && !strings.EqualFold(exe, "explorer.exe") && !strings.EqualFold(exe, selfExeName()) && !isUIWindow(exe, title) {
+		lastAppExe, lastAppTitle = exe, title
 	}
 }
 
@@ -463,12 +470,6 @@ func switchLanguage(code string) {
 	setLanguage(code)
 	reloadConfig(false)
 	setLanguage(code) // even when the file could not be written
-	if editCfg != nil {
-		editCfg.Language = code
-	}
-	if hwndSettings != 0 {
-		reopenSettings()
-	}
 }
 
 // ---- tray -------------------------------------------------------------------
@@ -528,7 +529,7 @@ func showMenu() {
 
 	switch cmd {
 	case cmdSettings:
-		openSettings()
+		openUI()
 	case cmdPause:
 		paused = !paused
 		pending = pending[:0]
@@ -568,17 +569,16 @@ func wndProc(hwnd uintptr, message uint32, wParam, lParam uintptr) uintptr {
 			housekeeping()
 		}
 		return 0
-	case wmSwitchLanguage:
-		if wParam == 1 {
-			switchLanguage("en")
-		} else {
-			switchLanguage("vi")
-		}
+	case wmUICall:
+		runUICalls()
+		return 0
+	case wmShowUI:
+		openUI()
 		return 0
 	case wmTray:
 		switch lParam {
 		case wmLButtonUp:
-			openSettings()
+			openUI()
 		case wmRButtonUp:
 			showMenu()
 		}
@@ -600,16 +600,20 @@ func main() {
 
 	_, _, lastErr := pCreateMutexW.Call(0, 0, uintptr(unsafe.Pointer(u16("Local\\AnticaterKnobWindows"))))
 	if errno, ok := lastErr.(syscall.Errno); ok && errno == errorAlreadyExists {
+		// Already running: starting the app again opens its settings page.
+		if other, _, _ := pFindWindowW.Call(uintptr(unsafe.Pointer(u16(mainClassName))), 0); other != 0 {
+			pPostMessageW.Call(other, wmShowUI, 0, 0)
+			return
+		}
 		setLanguage("")
 		messageBox("Anticater Knob", L("App đang chạy rồi (tìm biểu tượng ở khay hệ thống).", "Already running (look for the icon in the system tray)."))
 		return
 	}
 
 	reloadConfig(false)
-	initUI()
 
 	inst, _, _ := pGetModuleHandleW.Call(0)
-	className := u16("AnticaterKnobWindow")
+	className := u16(mainClassName)
 	wc := wndClassEx{WndProc: syscall.NewCallback(wndProc), Instance: inst, ClassName: className}
 	wc.Size = uint32(unsafe.Sizeof(wc))
 	pRegisterClassExW.Call(uintptr(unsafe.Pointer(&wc)))
@@ -638,6 +642,17 @@ func main() {
 	}
 	defer pUnhookWindowsHookEx.Call(hookHandle)
 
+	// The settings page. Started after the window exists: its requests are
+	// handed to this thread through hwndMain.
+	if srv, err := ui.Start(uiBackend{}, uiPort); err == nil {
+		uiServer = srv
+		if debugURLFile != "" {
+			os.WriteFile(debugURLFile, []byte(srv.URL()), 0o600)
+		}
+	} else {
+		logf("settings page unavailable: %v", err)
+	}
+
 	pSetTimer.Call(hwndMain, timerHousekeeping, 1000, 0)
 	logf("started; config %s", configPath())
 
@@ -646,12 +661,6 @@ func main() {
 		r, _, _ := pGetMessageW.Call(uintptr(unsafe.Pointer(&m)), 0, 0, 0)
 		if int32(r) <= 0 {
 			break
-		}
-		if hwndSettings != 0 {
-			// Gives the settings window Tab / Enter keyboard navigation.
-			if handled, _, _ := pIsDialogMessageW.Call(hwndSettings, uintptr(unsafe.Pointer(&m))); handled != 0 {
-				continue
-			}
 		}
 		pTranslateMessage.Call(uintptr(unsafe.Pointer(&m)))
 		pDispatchMessageW.Call(uintptr(unsafe.Pointer(&m)))

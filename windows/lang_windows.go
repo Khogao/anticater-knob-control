@@ -18,11 +18,6 @@ func L(vi, en string) string {
 	return vi
 }
 
-// text is a label kept in both languages, for tables built at package level.
-type text struct{ vi, en string }
-
-func (t text) String() string { return L(t.vi, t.en) }
-
 // setLanguage applies "vi" or "en". Anything else follows the Windows display
 // language: Vietnamese when Windows is in Vietnamese, English otherwise.
 func setLanguage(code string) {
