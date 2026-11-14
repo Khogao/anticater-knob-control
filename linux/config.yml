@@ -1,0 +1,55 @@
+# xremap config for the Anticater VK-01 knob on KDE Plasma (Wayland).
+#
+# The knob sends ordinary media keys:
+#   rotate          -> VOLUMEDOWN / VOLUMEUP
+#   press           -> MUTE (some units: PLAYPAUSE)
+#   hold + rotate   -> BRIGHTNESSDOWN / BRIGHTNESSUP
+#
+# Anything not remapped below is passed through untouched, so Plasma keeps
+# handling it: volume, mute and screen brightness work as they do without xremap.
+# Each entry is limited to the knob (ids:VENDOR:PRODUCT), so real keyboards are
+# never affected.
+#
+# Application names are the window class Plasma reports. To see the class of a
+# window, run xremap in a terminal, focus the window and turn the knob: xremap
+# prints "active window: caption: '...', class: '...'". Names between slashes
+# are regular expressions.
+#
+# xremap can only send keys, not mouse-wheel scrolling, so zoom uses Ctrl+= / Ctrl+-.
+
+keymap:
+  - name: Browsers - hold + rotate switches tabs
+    device:
+      only: [ids:0x5ac:0x22c]
+    application:
+      only: [/[Cc]hrom/, /[Ff]irefox/, /[Bb]rave/, /[Vv]ivaldi/, /[Ee]dge/]
+    remap:
+      BRIGHTNESSUP: C-Tab
+      BRIGHTNESSDOWN: C-Shift-Tab
+
+  # Examples - remove the leading "# " to enable.
+
+  # - name: Document and image viewers - rotate zooms
+  #   device:
+  #     only: [ids:0x5ac:0x22c]
+  #   application:
+  #     only: [/okular/, /gwenview/]
+  #   remap:
+  #     VOLUMEUP: C-Equal
+  #     VOLUMEDOWN: C-Minus
+
+  # - name: Video players - hold + rotate seeks
+  #   device:
+  #     only: [ids:0x5ac:0x22c]
+  #   application:
+  #     only: [/mpv/, /vlc/, /haruna/]
+  #   remap:
+  #     BRIGHTNESSUP: Right
+  #     BRIGHTNESSDOWN: Left
+
+  # - name: Everywhere else - hold + rotate skips tracks instead of brightness
+  #   device:
+  #     only: [ids:0x5ac:0x22c]
+  #   remap:
+  #     BRIGHTNESSUP: NEXTSONG
+  #     BRIGHTNESSDOWN: PREVIOUSSONG

@@ -378,6 +378,7 @@ Mọi thứ dùng trong quá trình làm trên macOS đều có trên ổ này. 
 |---|---|---|
 | `Sources/`, `build-gui.sh`, `README.md` | App macOS (Knob Console): mã nguồn, script build, tài liệu tiếng Anh | Có |
 | `windows/` | App Windows này | Có (trừ exe, ico và file sinh ra khi chạy) |
+| `linux/` | Cấu hình xremap, script cài và hướng dẫn cho Fedora KDE | Có |
 | `assets/logo.svg`, `assets/make-icons.swift` | Logo vector và script sinh icon cho cả hai bản (chạy trên macOS) | Script có, logo không |
 | `assets/AppIcon.icns`, `windows/AnticaterKnob.ico` | Icon đã sinh, màu cam `FF9124` | Không |
 | `tools/mac-probes/` | Bốn công cụ chẩn đoán cho macOS đã dùng để tìm lỗi: liệt kê event tap, ghi phím và phím media, so mốc thời gian tín hiệu núm với phím hệ thống, liệt kê cửa sổ của app | Có |

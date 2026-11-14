@@ -27,6 +27,12 @@ no code with the macOS app. It compiles but has not been run on Windows yet; its
 [README](windows/README.md) (Vietnamese) has the build steps, a first-run checklist and
 the list of unverified points.
 
+## Linux
+
+[`linux/`](linux/) has an [xremap](https://github.com/xremap/xremap) config, an install
+script and a guide (Vietnamese) for Fedora KDE on Wayland. No custom app is needed there:
+xremap grabs the knob and remaps per application. Not yet run on Linux.
+
 ## Knobs that enumerate as a keyboard
 
 Upstream was written for a VK-01 whose Bluetooth interface reports itself as a mouse,
