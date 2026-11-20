@@ -32,8 +32,10 @@
       "rotate_right": { "type": "scroll", "dy": 1, "keys": ["ctrl"], "description": "Zoom in" }
     },
     "EXCEL.EXE": {
-      "rotate_left":  { "type": "scroll", "dy": -1, "keys": ["ctrl"], "description": "Zoom out" },
-      "rotate_right": { "type": "scroll", "dy": 1, "keys": ["ctrl"], "description": "Zoom in" }
+      "rotate_left":        { "type": "scroll", "dy": 1, "description": "Scroll up" },
+      "rotate_right":       { "type": "scroll", "dy": -1, "description": "Scroll down" },
+      "press_rotate_left":  { "type": "scroll", "dx": -1, "description": "Scroll left" },
+      "press_rotate_right": { "type": "scroll", "dx": 1, "description": "Scroll right" }
     },
     "POWERPNT.EXE": {
       "rotate_left":  { "type": "scroll", "dy": -1, "keys": ["ctrl"], "description": "Zoom out" },
