@@ -6,8 +6,8 @@ cd "$(dirname "$0")"
 APP_DIR="build/ANTICATERKnobControl.app"
 mkdir -p "$APP_DIR/Contents/MacOS" "$APP_DIR/Contents/Resources"
 
-# Optional app icon. It is not part of the repository: drop an .icns file at
-# assets/AppIcon.icns (or point ANTICATER_APP_ICON at one) and it is bundled.
+# App icon: assets/AppIcon.icns, generated from assets/logo.svg by
+# assets/make-icons.swift. ANTICATER_APP_ICON can point at another .icns.
 ICON_SRC="${ANTICATER_APP_ICON:-assets/AppIcon.icns}"
 if [[ -f "$ICON_SRC" ]]; then
   cp "$ICON_SRC" "$APP_DIR/Contents/Resources/AppIcon.icns"

@@ -16,11 +16,6 @@ DerivedData/
 *.log
 *.tmp
 
-# Logo and generated icons supplied locally (third-party artwork, not redistributed here)
-assets/logo.svg
-assets/AppIcon.icns
-windows/AnticaterKnob.ico
-
 # Windows app: build output and files it writes next to the exe
 windows/AnticaterKnob.exe
 windows/knob-config.json
