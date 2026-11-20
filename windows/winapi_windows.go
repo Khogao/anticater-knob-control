@@ -246,8 +246,47 @@ func foregroundApp() (exe, title string) {
 	return windowApp(hwnd)
 }
 
-// windowApp returns the exe file name and title of a top-level window.
+// windowApp returns the exe file name and title of a top-level window. Store
+// (UWP) apps all live in ApplicationFrameHost.exe windows; for those it
+// returns the app's own process, found as a child window from another process,
+// so each app gets its own profile and light colour.
 func windowApp(hwnd uintptr) (exe, title string) {
+	exe, title = windowProcess(hwnd)
+	if strings.EqualFold(exe, "ApplicationFrameHost.exe") {
+		if child := uwpContent(hwnd); child != 0 {
+			if real, _ := windowProcess(child); real != "" {
+				exe = real
+			}
+		}
+	}
+	return exe, title
+}
+
+var (
+	pEnumChildWindows = user32.NewProc("EnumChildWindows")
+	uwpFramePID       uint32
+	uwpFound          uintptr
+	uwpEnumCallback   = syscall.NewCallback(func(child, _ uintptr) uintptr {
+		var pid uint32
+		pGetWindowThreadProcessId.Call(child, uintptr(unsafe.Pointer(&pid)))
+		if pid != 0 && pid != uwpFramePID {
+			uwpFound = child
+			return 0
+		}
+		return 1
+	})
+)
+
+// uwpContent returns the child window of a frame host window that belongs to
+// the hosted app, or 0. Main thread only.
+func uwpContent(frame uintptr) uintptr {
+	uwpFramePID, uwpFound = 0, 0
+	pGetWindowThreadProcessId.Call(frame, uintptr(unsafe.Pointer(&uwpFramePID)))
+	pEnumChildWindows.Call(frame, uwpEnumCallback, 0)
+	return uwpFound
+}
+
+func windowProcess(hwnd uintptr) (exe, title string) {
 	tbuf := make([]uint16, 512)
 	n, _, _ := pGetWindowTextW.Call(hwnd, uintptr(unsafe.Pointer(&tbuf[0])), uintptr(len(tbuf)))
 	title = syscall.UTF16ToString(tbuf[:n])

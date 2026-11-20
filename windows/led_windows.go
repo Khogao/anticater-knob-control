@@ -242,6 +242,15 @@ var (
 
 const eventSystemForeground = 3
 
+// shellParts are Windows pieces that take the foreground for a moment (Start,
+// search, the clock and volume flyouts, the touch keyboard, the ThinkPad
+// on-screen display). The lights keep the colour of the app before them.
+var shellParts = map[string]bool{
+	"startmenuexperiencehost.exe": true, "searchhost.exe": true, "searchapp.exe": true,
+	"shellexperiencehost.exe": true, "shellhost.exe": true, "textinputhost.exe": true,
+	"lockapp.exe": true, "tposd.exe": true, "applicationframehost.exe": true,
+}
+
 var pGetClassNameW = user32.NewProc("GetClassNameW")
 
 func windowClass(hwnd uintptr) string {
@@ -270,8 +279,8 @@ func ledUpdate() {
 		return
 	}
 	exe, title := windowApp(hwnd)
-	if exe == "" || strings.EqualFold(exe, selfExeName()) || isUIWindow(exe, title) {
-		return // keep the colour of the app the settings were opened from
+	if exe == "" || strings.EqualFold(exe, selfExeName()) || isUIWindow(exe, title) || shellParts[strings.ToLower(exe)] {
+		return // settings window, Start, search, flyouts: keep the colour of the app before
 	}
 	if strings.EqualFold(exe, "explorer.exe") {
 		switch windowClass(hwnd) {

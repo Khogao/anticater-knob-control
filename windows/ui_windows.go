@@ -206,7 +206,9 @@ func writeConfig(c *Config) error {
 // isUIWindow reports whether a window is the settings page itself, which
 // should not count as "the app the knob is being used in".
 func isUIWindow(exe, title string) bool {
-	return title == uiTitle && !strings.EqualFold(exe, selfExeName())
+	// Its own app window is titled exactly uiTitle; when no Edge or Chrome is
+	// found the page opens as a browser tab, titled "Anticater Knob - <browser>".
+	return (title == uiTitle || strings.HasPrefix(title, uiTitle+" - ")) && !strings.EqualFold(exe, selfExeName())
 }
 
 var enumApps []appInfo

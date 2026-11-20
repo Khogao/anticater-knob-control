@@ -102,6 +102,17 @@ func logf(format string, args ...any) {
 	fmt.Fprintf(logFile, "%s %s\n", time.Now().Format("15:04:05.000"), fmt.Sprintf(format, args...))
 }
 
+// gestureApp is the app whose profile a gesture uses: the app in front, except
+// that the settings window, an Edge or Chrome app window, counts as no app so
+// it does not pick up the browser's profile (hold + turn switched tabs there).
+func gestureApp() (string, string) {
+	exe, title := currentApp()
+	if isUIWindow(exe, title) {
+		return "", ""
+	}
+	return exe, title
+}
+
 func currentApp() (string, string) {
 	now := tickMs()
 	if now-fgAt > fgCacheMs {
@@ -252,12 +263,7 @@ func runGesture(gesture, origin string) {
 	lastKnobMs = tickMs()
 	recognizedCount++
 	gestureCounts[gesture]++
-	exe, title := currentApp()
-	if isUIWindow(exe, title) {
-		// The settings window is an Edge or Chrome app window; it must not pick
-		// up the browser's profile (hold + turn would switch tabs there).
-		exe, title = "", ""
-	}
+	exe, title := gestureApp()
 	act, source := cfg.resolve(gesture, exe, title)
 	lastEventText = fmt.Sprintf("%s in %s -> %s", gesture, orDash(exe), describe(act, source))
 	logf("%s  %s  app=%s  -> %s", origin, gesture, exe, describe(act, source))
@@ -324,7 +330,9 @@ func hookProc(code int32, wParam, lParam uintptr) uintptr {
 				logf("hook other vk=0x%02x scan=0x%02x flags=0x%02x time=%d (near a knob report, not handled)", vk, k.ScanCode, k.Flags, k.Time)
 			}
 			if gesture := gestureForVK(k.VkCode); gesture != "" {
-				exe, title := currentApp()
+				// Same app as runGesture uses, or the knob's volume key would be
+				// swallowed here while its action resolves to passthrough there.
+				exe, title := gestureApp()
 				if act, _ := cfg.resolve(gesture, exe, title); !act.isPassthrough() {
 					if knobReportedNear(k.Time) {
 						swallowedCount++
