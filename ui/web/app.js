@@ -53,8 +53,8 @@ const QUICK = [
     ['Zoom nhỏ (Ctrl + cuộn)', 'Zoom out (Ctrl + scroll)', scroll(-1, 0, 'ctrl')],
     ['Cuộn lên', 'Scroll up', scroll(1, 0)],
     ['Cuộn xuống', 'Scroll down', scroll(-1, 0)],
-    ['Cuộn trái', 'Scroll left', scroll(0, -1)],
-    ['Cuộn phải', 'Scroll right', scroll(0, 1)],
+    ['Cuộn ngang sang trái', 'Scroll sideways left', scroll(0, -1)],
+    ['Cuộn ngang sang phải', 'Scroll sideways right', scroll(0, 1)],
   ] },
   { group: ['Trình duyệt', 'Browser'], items: [
     ['Tab sau', 'Next tab', keys('ctrl', 'tab')],
