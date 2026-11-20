@@ -1,10 +1,11 @@
 package main
 
-// Screen brightness for external monitors, over DDC/CI (dxva2.dll).
+// Screen brightness: external monitors over DDC/CI (dxva2.dll), and the built-in
+// panel of a laptop through \\.\LCD.
 //
 // The knob's own brightness reports (usages 0x6F / 0x70) only move the built-in
 // panel of a laptop; Windows ignores them for external monitors. The shortcut
-// keys "brightness_up" / "brightness_down" talk to the monitors directly.
+// keys "brightness_up" / "brightness_down" talk to every screen directly.
 // A DDC/CI call takes about 60 ms per monitor, far too slow for the thread
 // that runs the keyboard hook, so the work happens on a goroutine that folds
 // a burst of knob ticks into one change.
@@ -135,9 +136,70 @@ func applyBrightness(delta int) {
 		pDestroyPhysicalMonitors.Call(uintptr(count), uintptr(unsafe.Pointer(&physical[0])))
 	}
 	brightnessLevels = brightnessLevels[:index]
+	if adjustPanel(delta) {
+		changed++
+	}
 	if changed == 0 {
 		brightnessUnsupported.Store(true)
 	}
+}
+
+// Built-in laptop panel, through the video driver's \\.\LCD device. It ignores
+// DDC/CI, and when the knob's own brightness reports are turned off (README 9.5)
+// this is the only way left to move it. Owned by the worker goroutine.
+const (
+	ioctlVideoQueryDisplayBrightness = 0x230498
+	ioctlVideoSetDisplayBrightness   = 0x23049C
+	displayPolicyBoth                = 3 // set the level for both mains and battery
+)
+
+type displayBrightness struct{ Policy, AC, DC uint8 }
+
+var panelLevel monitorLevel
+
+// adjustPanel moves the built-in panel by delta percent. It reports whether the
+// panel exists and took the change (or is already at the end of its range).
+func adjustPanel(delta int) bool {
+	name, _ := syscall.UTF16PtrFromString(`\\.\LCD`)
+	h, err := syscall.CreateFile(name, syscall.GENERIC_READ|syscall.GENERIC_WRITE,
+		syscall.FILE_SHARE_READ|syscall.FILE_SHARE_WRITE, nil, syscall.OPEN_EXISTING, 0, 0)
+	if err != nil {
+		return false // no built-in panel (desktop), or the driver does not offer it
+	}
+	defer syscall.CloseHandle(h)
+	var n uint32
+	if time.Since(panelLevel.readAt) > brightnessStale {
+		// Windows' own slider and keys change it too. The driver answers a query with
+		// the level from before the last set for a moment, so the cached value wins
+		// while it is fresh.
+		var b displayBrightness
+		err := syscall.DeviceIoControl(h, ioctlVideoQueryDisplayBrightness, nil, 0, (*byte)(unsafe.Pointer(&b)), 3, &n, nil)
+		if err != nil {
+			return false
+		}
+		cur := b.AC
+		if b.Policy == 2 {
+			cur = b.DC // on battery
+		}
+		panelLevel = monitorLevel{min: 0, cur: int(cur), max: 100, ok: true, readAt: time.Now()}
+	}
+	want := panelLevel.cur + delta
+	if want < 0 {
+		want = 0
+	}
+	if want > 100 {
+		want = 100
+	}
+	if want == panelLevel.cur {
+		return true
+	}
+	b := displayBrightness{Policy: displayPolicyBoth, AC: uint8(want), DC: uint8(want)}
+	if err := syscall.DeviceIoControl(h, ioctlVideoSetDisplayBrightness, (*byte)(unsafe.Pointer(&b)), 3, nil, 0, &n, nil); err != nil {
+		panelLevel.readAt = time.Time{}
+		return false
+	}
+	panelLevel.cur, panelLevel.readAt = want, time.Now()
+	return true
 }
 
 // brightnessUnsupported is set when no monitor accepted a brightness change;

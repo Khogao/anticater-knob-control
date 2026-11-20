@@ -4,7 +4,7 @@
     "Action types: passthrough (Windows handles it: volume / mute), shortcut, scroll, mouse, shell, noop.",
     "shortcut keys: ctrl shift alt win + a letter/digit/f1..f24/left/right/up/down/enter/esc/space/tab/[ ] - = , . / and media names",
     "  (volume_up volume_down mute play_pause next_track previous_track). 'command'/'cmd' is treated as ctrl.",
-    "  brightness_up / brightness_down change the brightness of external monitors by 5% (needs DDC/CI on in the monitor menu).",
+    "  brightness_up / brightness_down change the brightness of the laptop panel and of external monitors by 5% (external monitors need DDC/CI on in their own menu).",
     "scroll: dy > 0 scrolls up, dx > 0 scrolls right; optional keys are held while scrolling (ctrl = zoom).",
     "every: act only on every Nth tick; use 2 if one detent of your knob fires an action twice.",
     "apps: key is the exe name, or 'exe|text' to match only when the window title contains text.",
@@ -17,8 +17,8 @@
     "rotate_left":        { "type": "passthrough", "description": "Volume down" },
     "rotate_right":       { "type": "passthrough", "description": "Volume up" },
     "press":              { "type": "passthrough", "description": "Mute" },
-    "press_rotate_left":  { "type": "scroll", "dy": 1, "description": "Scroll up" },
-    "press_rotate_right": { "type": "scroll", "dy": -1, "description": "Scroll down" }
+    "press_rotate_left":  { "type": "shortcut", "keys": ["brightness_down"], "description": "Brightness down" },
+    "press_rotate_right": { "type": "shortcut", "keys": ["brightness_up"], "description": "Brightness up" }
   },
   "apps": {
     "WINWORD.EXE": {

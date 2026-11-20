@@ -276,7 +276,7 @@ Các hằng số nằm đầu `main_windows.go`: `knobWindowMs = 60`, `pendingHo
 | `winapi_windows.go` | Khai báo hàm và cấu trúc Win32 qua `syscall.NewLazyDLL` (không cgo). Tiện ích: `foregroundApp`, `windowApp`, `rawDeviceName`, `sendKey`, `sendWheel`, `sendMouseButton`, `setAutostart`, `shellOpen` |
 | `config_windows.go` | Kiểu `Config`, `Action`; `loadConfig`, `validate`; `matchesDevice` (khớp `VID:PID` trong đường dẫn thiết bị); `resolve` (chọn hành động theo app và tiêu đề) |
 | `actions_windows.go` | Bảng tên phím → mã phím ảo (`namedKeys`, `lookupKey`), `perform` chạy hành động |
-| `brightness_windows.go` | Độ sáng màn hình ngoài qua DDC/CI: `adjustBrightness` xếp yêu cầu, luồng riêng `brightnessWorker` gửi lệnh |
+| `brightness_windows.go` | Độ sáng: màn hình ngoài qua DDC/CI, màn hình tích hợp của laptop qua `\\.\LCD` (`adjustPanel`). `adjustBrightness` xếp yêu cầu, luồng riêng `brightnessWorker` gửi lệnh |
 | `ui_windows.go` | Cầu nối giữa lõi và trang cài đặt: `uiBackend` (trạng thái, đọc/ghi cấu hình, danh sách app, lệnh), `onMain` đưa yêu cầu từ luồng HTTP về luồng chính, `openUI` mở hoặc đưa cửa sổ lên trước, `runningApps` |
 | `lang_windows.go` | Hai ngôn ngữ cho menu khay và thông báo: `L("tiếng Việt", "English")` chọn chuỗi theo ngôn ngữ hiện tại; `setLanguage` |
 | `../ui/ui.go` | Gói dùng chung, không phụ thuộc hệ điều hành: máy chủ HTTP nội bộ, kiểm tra mã truy cập, giao diện `Backend` mà mỗi nền tảng tự cài |
@@ -356,14 +356,19 @@ không đổi vì Windows không điều khiển được màn hình ngoài, tr�
 thường không chặn được việc này. `umpoext.dll` có đọc chính sách `MixedReality/BrightnessButtonDisabled`
 (`HKLM\SOFTWARE\Microsoft\PolicyManager\default\MixedReality`), nhưng đó là chính sách của HoloLens, chưa thử trên Windows bản thường.
 
-Để chỉnh độ sáng **màn hình ngoài**, gán thao tác tới phím `brightness_up` / `brightness_down` (bảng Chọn nhanh, nhóm
+Để chỉnh độ sáng **cả màn hình laptop lẫn màn hình ngoài**, gán thao tác tới phím `brightness_up` / `brightness_down` (bảng Chọn nhanh, nhóm
 "Màn hình", hoặc mẫu nhanh "Độ sáng màn hình"). App gửi lệnh DDC/CI thẳng tới màn hình qua `dxva2.dll`
 (`brightness_windows.go`), mỗi nấc 5%, áp dụng cho mọi màn hình cùng lúc. Lưu ý:
 
 - Màn hình phải bật DDC/CI trong menu của chính nó. Nếu không màn hình nào nhận lệnh, app báo một lần ở khay.
 - Mỗi lệnh DDC/CI mất khoảng 60 ms cho một màn hình, nên việc này chạy ở luồng riêng và gộp các nấc xoay liên tiếp lại.
 - Windows không hiện thanh độ sáng trên màn hình cho thay đổi kiểu này.
-- Màn hình tích hợp của laptop không nhận DDC/CI; với nó hãy để thao tác là "Hệ điều hành xử lý".
+- Màn hình tích hợp của laptop không nhận DDC/CI; app chỉnh nó qua thiết bị `\\.\LCD` của driver màn hình (đã thử trên ThinkPad P1 Gen 5, 21/11/2026).
+  Máy bàn không có `\\.\LCD` thì app bỏ qua bước này.
+- Hồ sơ mặc định gán giữ + xoay cho `brightness_up` / `brightness_down`. Nếu Windows vẫn tự đọc mã độ sáng của núm thì màn hình
+  laptop đổi hai lần mỗi nấc (một lần của Windows, một lần của app) và biểu tượng độ sáng vẫn hiện. Muốn chỉ app chỉnh,
+  phải tắt nút độ sáng của Windows bằng chính sách ở trên; khi chưa tắt được thì gán giữ + xoay ở hồ sơ mặc định thành
+  `passthrough`, chấp nhận màn hình ngoài không đổi.
 
 ### 9.6 Cửa sổ cài đặt
 
@@ -389,7 +394,7 @@ Theo thứ tự ưu tiên:
 3. Thử cả ba kiểu kết nối (dây, dongle, Bluetooth), vì đường dẫn thiết bị và dạng gói có thể khác nhau.
 4. Nhúng icon vào exe (file `.syso`), thay cho việc đọc icon từ file rời.
 5. Hỏi lại khi đóng cửa sổ cài đặt mà chưa lưu; hiện icon thật của app trong thanh bên.
-6. Độ sáng cho màn hình tích hợp của laptop (WMI hoặc `\.\LCD`), và chọn riêng từng màn hình thay vì tất cả.
+6. Chọn riêng từng màn hình khi chỉnh độ sáng thay vì tất cả. (Màn hình tích hợp của laptop đã chỉnh được qua `\\.\LCD`.)
 7. Ký số file exe để hết cảnh báo SmartScreen.
 
 ## 11. Khắc phục sự cố
