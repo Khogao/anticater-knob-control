@@ -19,6 +19,8 @@ package main
 
 import (
 	"math"
+	"os"
+	"path/filepath"
 	"strconv"
 	"syscall"
 	"unsafe"
@@ -39,6 +41,7 @@ const (
 	osdBarH    = 4.0
 	osdNumberX = 171.0 // centre of the number
 	osdFontPx  = 14.0
+	osdIconPx  = 16.0
 
 	wsExLayered     = 0x00080000
 	wsExTopmost     = 0x00000008
@@ -206,17 +209,22 @@ func osdBitmap(hdc uintptr, w, h int) (uintptr, []byte, func()) {
 }
 
 func osdPaint(mem uintptr, pixels []byte, w, h int, scale float64, level int, theme osdTheme) {
-	copy(pixels, osdRender(w, h, scale, level, theme))
-	osdDrawNumber(mem, pixels, w, h, scale, level, theme)
+	glyph := fluentIcons()
+	copy(pixels, osdRender(w, h, scale, level, theme, !glyph))
+	if glyph {
+		// U+E706 "Brightness" in Segoe Fluent Icons.
+		osdText(mem, pixels, w, h, osdIconX*scale, osdIconPx*scale, "Segoe Fluent Icons", "\uE706", theme.fg)
+	}
+	osdText(mem, pixels, w, h, osdNumberX*scale, osdFontPx*scale, "Segoe UI Variable Text", strconv.Itoa(level), theme.fg)
 }
 
-// osdDrawNumber writes the level with GDI. GDI clears the alpha byte of every
-// pixel it touches; the number sits on the opaque panel, so alpha goes back to
-// 255 over its box afterwards.
-func osdDrawNumber(dc uintptr, pixels []byte, w, h int, scale float64, level int, t osdTheme) {
+// osdText writes one line of text centred at cx with GDI. GDI clears the alpha
+// byte of every pixel it touches; the text sits on the opaque panel, so alpha
+// goes back to 255 over its box afterwards.
+func osdText(dc uintptr, pixels []byte, w, h int, cx, sizePx float64, face, text string, c rgb) {
 	const fwNormal, antialiased, transparent, dtCenterVcenterSingle = 400, 4, 1, 0x1 | 0x4 | 0x20
-	font, _, _ := pCreateFontW.Call(uintptr(-int32(math.Round(osdFontPx*scale))), 0, 0, 0, fwNormal, 0, 0, 0, 1, 0, 0, antialiased, 0,
-		uintptr(unsafe.Pointer(u16("Segoe UI Variable Text"))))
+	font, _, _ := pCreateFontW.Call(uintptr(-int32(math.Round(sizePx))), 0, 0, 0, fwNormal, 0, 0, 0, 1, 0, 0, antialiased, 0,
+		uintptr(unsafe.Pointer(u16(face))))
 	if font == 0 {
 		return
 	}
@@ -224,19 +232,24 @@ func osdDrawNumber(dc uintptr, pixels []byte, w, h int, scale float64, level int
 	oldFont, _, _ := pSelectObject.Call(dc, font)
 	defer pSelectObject.Call(dc, oldFont)
 	pSetBkMode.Call(dc, transparent)
-	pSetTextColor.Call(dc, uintptr(byte(t.fg.r*255))|uintptr(byte(t.fg.g*255))<<8|uintptr(byte(t.fg.b*255))<<16)
-	half := 14 * scale
-	rect := [4]int32{int32(osdNumberX*scale - half), 0, int32(osdNumberX*scale + half), int32(h)}
-	text := u16(strconv.Itoa(level))
-	pDrawTextW.Call(dc, uintptr(unsafe.Pointer(text)), ^uintptr(0), uintptr(unsafe.Pointer(&rect)), dtCenterVcenterSingle)
+	pSetTextColor.Call(dc, uintptr(byte(c.r*255))|uintptr(byte(c.g*255))<<8|uintptr(byte(c.b*255))<<16)
+	half := sizePx
+	rect := [4]int32{int32(cx - half), 0, int32(cx + half), int32(h)}
+	pDrawTextW.Call(dc, uintptr(unsafe.Pointer(u16(text))), ^uintptr(0), uintptr(unsafe.Pointer(&rect)), dtCenterVcenterSingle)
 	pGdiFlush.Call()
-	for y := int(rect[1]) + 2; y < int(rect[3])-2; y++ {
-		for x := int(rect[0]); x < int(rect[2]) && x < w; x++ {
+	for y := 2; y < h-2; y++ {
+		for x := max(int(rect[0]), 2); x < int(rect[2]) && x < w-2; x++ {
 			pixels[(y*w+x)*4+3] = 255
 		}
 	}
 }
 
+// fluentIcons reports whether Windows has the Segoe Fluent Icons font, which
+// Windows 11 draws its own flyout icons with.
+func fluentIcons() bool {
+	_, err := os.Stat(filepath.Join(os.Getenv("WINDIR"), "Fonts", "SegoeIcons.ttf"))
+	return err == nil
+}
 func osdProc(hwnd uintptr, message uint32, wParam, lParam uintptr) uintptr {
 	if message == wmTimer && wParam == osdTimer {
 		pKillTimer.Call(hwnd, osdTimer)
@@ -249,7 +262,7 @@ func osdProc(hwnd uintptr, message uint32, wParam, lParam uintptr) uintptr {
 
 // osdRender draws the panel, icon and bar into premultiplied BGRA pixels, top
 // row first. The number is added by osdDrawNumber.
-func osdRender(w, h int, scale float64, level int, t osdTheme) []byte {
+func osdRender(w, h int, scale float64, level int, t osdTheme, sun bool) []byte {
 	px := make([]byte, w*h*4)
 	const ss = 4 // samples per pixel side, for smooth edges
 	fw, fh := float64(w), float64(h)
@@ -272,6 +285,9 @@ func osdRender(w, h int, scale float64, level int, t osdTheme) []byte {
 					}
 					// Sun, outline style: a ring and eight short rays.
 					d := math.Hypot(fx-iconCX, fy-iconCY)
+					if !sun {
+						d = 1e9
+					}
 					if math.Abs(d-3.2*scale) <= stroke/2 {
 						c = t.fg
 					} else if d >= 5.2*scale && d <= 7.4*scale {
