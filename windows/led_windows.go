@@ -43,7 +43,8 @@ var ledScript []byte
 type LEDConfig struct {
 	Brightness int  `json:"brightness"`
 	Auto       bool `json:"auto,omitempty"`
-	// Green scales the green part of every colour sent (0.3..1, default 0.75).
+	// Green scales the green part of strong colours (0.3..1, default 0.75);
+	// white and pale colours get only a fifth of the cut.
 	// The knob's board is green and tints the light green: orange looked
 	// yellow-green on the test knob.
 	Green  float64           `json:"green,omitempty"`
@@ -135,7 +136,14 @@ func (l *LEDConfig) lineAt(c string, factor float64) string {
 	}
 	var r, g, b int
 	if _, err := fmt.Sscanf(c, "%02X%02X%02X", &r, &g, &b); err == nil && l.Green > 0 {
-		c = fmt.Sprintf("%02X%02X%02X", r, int(float64(g)*l.Green+0.5), b)
+		// Full correction for strong colours, little for white and pale ones:
+		// with the same cut, white turned purple on the test knob.
+		sat := 0.0
+		if mx := max(r, g, b); mx > 0 {
+			sat = float64(mx-min(r, g, b)) / float64(mx)
+		}
+		k := l.Green + (1-l.Green)*(1-sat)*0.8
+		c = fmt.Sprintf("%02X%02X%02X", r, int(float64(g)*k+0.5), b)
 	}
 	return fmt.Sprintf("%s %d", c, max(5, int(float64(l.Brightness)*factor+0.5)))
 }
