@@ -736,12 +736,18 @@ function ledCard() {
   // The colour in force now: the one set here, or the automatic one the app reports.
   const shown = colour || (state && state.ledColours && state.ledColours[key]) || '';
   const pick = el('input', { type: 'color', value: hex(shown) });
+  let code = null; // the text next to the picker, set below
+  // 'input' fires while the colour dialog is open: update the light and the
+  // label only. Rebuilding the card here would remove this input and close the
+  // dialog under the mouse. The card is rebuilt once the dialog closes.
   pick.addEventListener('input', () => {
-    previewLight('colour:' + pick.value.slice(1).toUpperCase());
-    ensure().apps[key] = pick.value.slice(1).toUpperCase();
+    const c = pick.value.slice(1).toUpperCase();
+    previewLight('colour:' + c);
+    ensure().apps[key] = c;
+    code.textContent = '#' + c;
     markDirty();
-    renderEditor();
   });
+  pick.addEventListener('change', () => renderEditor());
   const clear = el('button', {
     text: selected === '' ? L('Không đổi màu ở màn hình nền', 'No colour on the desktop') : L('Dùng màu tự động', 'Use the automatic colour'),
     disabled: !colour,
@@ -751,7 +757,7 @@ function ledCard() {
     el('div', { class: 'row' },
       el('span', { text: selected === '' ? L('Màu ở màn hình nền', 'Colour on the desktop') : L('Màu khi dùng app này', 'Colour in this app') }),
       pick,
-      el('span', { class: 'muted small', text: colour ? '#' + colour.toUpperCase()
+      code = el('span', { class: 'muted small', text: colour ? '#' + colour.toUpperCase()
         : shown && /^[0-9a-f]{6}$/i.test(shown) ? '#' + shown.toUpperCase() + L(' (tự động)', ' (automatic)') : L('(tự động)', '(automatic)') }),
       clear),
   ];
