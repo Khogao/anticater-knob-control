@@ -17,7 +17,7 @@
     "brightness": 45,
     "auto": true,
     "green": 0.45,
-    "apps": { "desktop": "FFFFFF", "explorer.exe": "FFC800", "msedge.exe": "00A7E1", "calculatorapp.exe": "00A7E1", "chrome.exe": "FF0000", "claude.exe": "FF8000", "anticater.exe": "BEF449" }
+    "apps": { "desktop": "FFFFFF", "explorer.exe": "FFC800", "msedge.exe": "00A7E1", "calculatorapp.exe": "00A7E1", "chrome.exe": "FF0000", "claude.exe": "FF8000", "anticater.exe": "4DFF4D" }
   },
   "log": true,
   "global": {
