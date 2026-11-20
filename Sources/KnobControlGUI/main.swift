@@ -1242,7 +1242,8 @@ private enum NativeKeyBlocker {
 
     static func start() -> Bool {
         guard thread == nil else { return true }
-        let mask = CGEventMask(1) << 14 // NX_SYSDEFINED
+        // NX_SYSDEFINED for the media keys; key down / up for the knob's F13.
+        let mask = (CGEventMask(1) << 14) | (CGEventMask(1) << CGEventType.keyDown.rawValue) | (CGEventMask(1) << CGEventType.keyUp.rawValue)
         guard let port = CGEvent.tapCreate(
             tap: .cgSessionEventTap,
             place: .headInsertEventTap,
@@ -1323,6 +1324,12 @@ private enum NativeKeyBlocker {
         if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
             if let tap { CGEvent.tapEnable(tap: tap, enable: true) }
             return Unmanaged.passUnretained(event)
+        }
+        if type == .keyDown || type == .keyUp {
+            // F13 is a key no Mac keyboard has; the knob sends it for hold + turn
+            // (see knobInput). Drop it so it reaches no other app.
+            let isF13 = event.getIntegerValueField(.keyboardEventKeycode) == 0x69 // kVK_F13
+            return isF13 && event.getIntegerValueField(.eventSourceUserData) != ownEventTag ? nil : Unmanaged.passUnretained(event)
         }
         guard type.rawValue == 14,
               event.getIntegerValueField(.eventSourceUserData) != ownEventTag,
@@ -2944,10 +2951,23 @@ private let keyNameByCode: [CGKeyCode: String] = {
     return result
 }()
 
+// The knob's hold + turn can be reassigned in the vendor's configuration app to
+// F13 (hold + turn right) and Shift + F13 (hold + turn left). Its default
+// brightness codes make Windows show its own brightness flyout whatever the
+// Windows app does, so the knob is set up that way; this side reads the same
+// keys. Only ever touched on the main run loop, where the HID callback runs.
+private var knobShiftDown = false
+
 private func knobInput(page: UInt32, usage: UInt32, intValue: Int) -> KnobInput? {
+    if page == 0x0007, usage == 0x00e1 || usage == 0x00e5 { // left / right Shift of the knob
+        knobShiftDown = intValue != 0
+        return nil
+    }
     guard intValue != 0 else { return nil }
 
     switch page {
+    case 0x0007:
+        return usage == 0x0068 ? (knobShiftDown ? .pressRotateLeft : .pressRotateRight) : nil // F13
     case 0x000c:
         switch usage {
         case 0x00e9: return .rotateRight

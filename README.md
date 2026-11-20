@@ -128,6 +128,13 @@ tccutil reset Accessibility cc.codex.anticater-knob-control
   or a tool such as MonitorControl handles it.
 - Because the knob's own keys are blocked, hold + rotate only changes the brightness
   if a profile maps it to `brightness_up` / `brightness_down`.
+- Hold + rotate is recognized both as the knob's default brightness codes and as F13 /
+  Shift + F13. The second form is what the Windows app needs (Windows shows its
+  brightness flyout for the default codes whatever an app does), so a knob reassigned
+  for Windows in the vendor's configuration app (hold + rotate right → F13, hold +
+  rotate left → Shift + F13) keeps working here. The setting lives in the knob. The
+  knob's F13 is dropped by the event tap so it reaches no other app.
+  **Not yet built or run on a Mac.**
 - *Quick pick* on each gesture row assigns a common action in one click: media and
   brightness keys, zoom, scrolling, tabs, undo / redo, copy / paste, arrow keys.
 - *Quick templates* fill a profile for browsers, code editors, media, design and video
