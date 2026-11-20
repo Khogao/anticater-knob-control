@@ -253,6 +253,11 @@ func runGesture(gesture, origin string) {
 	recognizedCount++
 	gestureCounts[gesture]++
 	exe, title := currentApp()
+	if isUIWindow(exe, title) {
+		// The settings window is an Edge or Chrome app window; it must not pick
+		// up the browser's profile (hold + turn would switch tabs there).
+		exe, title = "", ""
+	}
 	act, source := cfg.resolve(gesture, exe, title)
 	lastEventText = fmt.Sprintf("%s in %s -> %s", gesture, orDash(exe), describe(act, source))
 	logf("%s  %s  app=%s  -> %s", origin, gesture, exe, describe(act, source))
