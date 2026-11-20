@@ -137,14 +137,40 @@ var brandColours = map[string]string{
 // one made from a hash of the exe name so the same app always gets the same.
 func autoColour(lexe string) string {
 	if c, ok := brandColours[lexe]; ok {
-		return c
+		return vivid(c)
 	}
 	h := uint32(2166136261)
 	for i := 0; i < len(lexe); i++ {
 		h = (h ^ uint32(lexe[i])) * 16777619
 	}
-	r, g, b := hsvToRGB(float64(h%360), 0.85, 1)
+	r, g, b := hsvToRGB(float64(h%360), 1, 1)
 	return fmt.Sprintf("%02X%02X%02X", r, g, b)
+}
+
+// vivid keeps a colour's hue but makes it fully saturated and bright. The
+// knob's lights wash out muted colours: Claude's #D97757 showed nearly white.
+// Grey and white (no hue) stay as they are.
+func vivid(hex string) string {
+	var r, g, b int
+	if _, err := fmt.Sscanf(hex, "%02x%02x%02x", &r, &g, &b); err != nil {
+		return hex
+	}
+	mx, mn := max(r, g, b), min(r, g, b)
+	if mx-mn < 24 {
+		return hex
+	}
+	var h float64
+	d := float64(mx - mn)
+	switch mx {
+	case r:
+		h = mod(float64(g-b)/d+6, 6) * 60
+	case g:
+		h = (float64(b-r)/d + 2) * 60
+	default:
+		h = (float64(r-g)/d + 4) * 60
+	}
+	R, G, B := hsvToRGB(h, 1, 1)
+	return fmt.Sprintf("%02X%02X%02X", R, G, B)
 }
 
 func hsvToRGB(h, s, v float64) (byte, byte, byte) {
