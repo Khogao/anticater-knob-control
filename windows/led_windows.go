@@ -43,7 +43,7 @@ var ledScript []byte
 type LEDConfig struct {
 	Brightness int  `json:"brightness"`
 	Auto       bool `json:"auto,omitempty"`
-	// Green scales the green part of strong colours (0.3..1, default 0.75);
+	// Green scales the green part of strong colours (0.3..1, default 0.45, set on the test knob);
 	// white and pale colours get only a fifth of the cut.
 	// The knob's board is green and tints the light green: orange looked
 	// yellow-green on the test knob.
@@ -62,7 +62,7 @@ func (l *LEDConfig) validate() error {
 		l.Brightness = 45
 	}
 	if l.Green == 0 {
-		l.Green = 0.75
+		l.Green = 0.45
 	}
 	if l.Green < 0.3 || l.Green > 1 {
 		return fmt.Errorf("led.green must be 0.3..1, not %v", l.Green)

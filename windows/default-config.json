@@ -16,7 +16,8 @@
   "led": {
     "brightness": 45,
     "auto": true,
-    "apps": { "desktop": "FFFFFF", "explorer.exe": "FFC800", "msedge.exe": "00A7E1", "calculatorapp.exe": "00A7E1", "chrome.exe": "FF0000" }
+    "green": 0.45,
+    "apps": { "desktop": "FFFFFF", "explorer.exe": "FFC800", "msedge.exe": "00A7E1", "calculatorapp.exe": "00A7E1", "chrome.exe": "FF0000", "claude.exe": "FF8000" }
   },
   "log": true,
   "global": {
@@ -30,6 +31,12 @@
     "WINWORD.EXE": {
       "rotate_left":  { "type": "scroll", "dy": -1, "keys": ["ctrl"], "description": "Zoom out" },
       "rotate_right": { "type": "scroll", "dy": 1, "keys": ["ctrl"], "description": "Zoom in" }
+    },
+    "claude.exe": {
+      "rotate_left":        { "type": "scroll", "dy": 1, "description": "Scroll up" },
+      "rotate_right":       { "type": "scroll", "dy": -1, "description": "Scroll down" },
+      "press_rotate_left":  { "type": "shortcut", "keys": ["brightness_down"], "description": "Brightness down" },
+      "press_rotate_right": { "type": "shortcut", "keys": ["brightness_up"], "description": "Brightness up" }
     },
     "EXCEL.EXE": {
       "rotate_left":        { "type": "scroll", "dy": 1, "description": "Scroll up" },

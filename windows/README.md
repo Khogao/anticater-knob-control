@@ -215,6 +215,9 @@ cấu hình đang dùng.
 - Khoá trong `apps` khớp như khoá hồ sơ (`exe` hoặc `exe|chữ`). `desktop` là màn hình nền của Windows; khi đó `explorer.exe`
   chỉ còn là cửa sổ File Explorer. Thanh tác vụ và menu Start không đổi màu.
 - Màu là `RRGGBB` hoặc `off`. `brightness` từ 1 đến 100.
+- `green` (0,3 đến 1, mặc định 0,45): mạch trong núm màu xanh lá làm ánh đèn ngả xanh, nên phần xanh lá của màu đậm được nhân với số này.
+  Màu trắng và màu nhạt chỉ giảm một phần xanh lá và giảm thêm một ít xanh dương (đèn đỏ của núm yếu nhất). Các mức này chỉnh theo mắt
+  anh trên núm thật ngày 21/11/2026: trắng gửi `FFBFFF` ra tím, `FFE3FF` ra xanh ngọc, `FFCEB3` ra trắng.
 - `auto: true`: app chưa có màu thì lấy màu đặc trưng của app quen (`brandColours`), còn lại một màu cố định sinh từ tên exe.
   Không có `auto` thì dùng `global`; `global` trống thì giữ nguyên màu.
 - Sửa trong cửa sổ cài đặt: thẻ "Đèn của núm" ở đầu mỗi hồ sơ. Ở "Mặc định chung" là màu màn hình nền, công tắc tự động và độ sáng.
