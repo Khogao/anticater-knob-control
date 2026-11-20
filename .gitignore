@@ -29,3 +29,6 @@ windows/knob-diagnostic.txt
 
 # Local-only material: copies of personal config and third-party artwork
 local/
+
+# The vendor's ANTICATER configuration app, downloaded separately (not ours to redistribute)
+window_en_v*/

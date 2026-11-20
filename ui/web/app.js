@@ -44,6 +44,10 @@ const QUICK = [
     ['Bài sau', 'Next track', keys('next_track')],
     ['Bài trước', 'Previous track', keys('previous_track')],
   ] },
+  { group: ['Màn hình', 'Display'], items: [
+    ['Độ sáng +', 'Brightness +', keys('brightness_up')],
+    ['Độ sáng −', 'Brightness −', keys('brightness_down')],
+  ] },
   { group: ['Cuộn và zoom', 'Scroll and zoom'], items: [
     ['Zoom to (Ctrl + cuộn)', 'Zoom in (Ctrl + scroll)', scroll(1, 0, 'ctrl')],
     ['Zoom nhỏ (Ctrl + cuộn)', 'Zoom out (Ctrl + scroll)', scroll(-1, 0, 'ctrl')],
@@ -85,6 +89,7 @@ const QUICK = [
 
 const TEMPLATES = [
   ['Âm lượng', 'Volume', { type: 'passthrough' }, { type: 'passthrough' }],
+  ['Độ sáng màn hình', 'Screen brightness', keys('brightness_down'), keys('brightness_up')],
   ['Zoom (Ctrl + cuộn)', 'Zoom (Ctrl + scroll)', scroll(-1, 0, 'ctrl'), scroll(1, 0, 'ctrl')],
   ['Zoom (Ctrl − / Ctrl =)', 'Zoom (Ctrl − / Ctrl =)', keys('ctrl', '-'), keys('ctrl', '=')],
   ['Cuộn trang', 'Scroll page', scroll(1, 0), scroll(-1, 0)],
@@ -689,6 +694,7 @@ const CODE_KEYS = {
   BracketLeft: '[', BracketRight: ']', Minus: '-', Equal: '=', Comma: ',', Period: '.', Slash: '/',
   Semicolon: ';', Quote: "'", Backquote: '`', Backslash: '\\',
 };
+// Names that are valid in the Keys box but cannot be typed as a key press.
 const MEDIA_KEYS = {
   AudioVolumeUp: 'volume_up', AudioVolumeDown: 'volume_down', AudioVolumeMute: 'mute',
   MediaPlayPause: 'play_pause', MediaTrackNext: 'next_track', MediaTrackPrevious: 'previous_track',

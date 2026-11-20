@@ -281,6 +281,11 @@ func hookProc(code int32, wParam, lParam uintptr) uintptr {
 		// report), so the flag cannot be used to skip them. Only keys this app
 		// sent itself, recognized by their mark, are let through untouched.
 		if k.ExtraInfo != ownInputMark {
+			// Diagnostic: a key outside the typing range that coincides with a
+			// knob report is probably one the knob produced and is not handled.
+			if vk := k.VkCode; gestureForVK(vk) == "" && (vk < 0x08 || (vk > 0xA5 && vk < 0xBA) || vk > 0xE2) && knobReportedNear(k.Time) {
+				logf("hook other vk=0x%02x scan=0x%02x flags=0x%02x time=%d (near a knob report, not handled)", vk, k.ScanCode, k.Flags, k.Time)
+			}
 			if gesture := gestureForVK(k.VkCode); gesture != "" {
 				exe, title := currentApp()
 				if act, _ := cfg.resolve(gesture, exe, title); !act.isPassthrough() {
@@ -361,6 +366,7 @@ func housekeeping() {
 	if st, err := os.Stat(configPath()); err == nil && !st.ModTime().Equal(cfgModTime) {
 		reloadConfig(true)
 	}
+	warnBrightnessOnce()
 	exe, title := foregroundApp()
 	if exe != "" && !strings.EqualFold(exe, "explorer.exe") && !strings.EqualFold(exe, selfExeName()) && !isUIWindow(exe, title) {
 		lastAppExe, lastAppTitle = exe, title

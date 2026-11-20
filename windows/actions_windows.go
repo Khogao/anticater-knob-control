@@ -31,6 +31,9 @@ var namedKeys = map[string]uint16{
 
 	"volume_up": vkVolumeUp, "volume_down": vkVolumeDown, "mute": vkVolumeMute,
 	"play_pause": vkMediaPlayPause, "next_track": vkMediaNext, "previous_track": vkMediaPrev,
+
+	// Not real keys: they set monitor brightness over DDC/CI (brightness_windows.go).
+	"brightness_up": keyBrightnessUp, "brightness_down": keyBrightnessDown,
 }
 
 var extendedKeys = map[uint16]bool{
@@ -104,8 +107,15 @@ func perform(a Action) {
 		mods, keys := splitKeys(a.Keys)
 		withModifiers(mods, func() {
 			for _, k := range keys {
-				sendKey(k, false)
-				sendKey(k, true)
+				switch k {
+				case keyBrightnessUp:
+					adjustBrightness(brightnessStep)
+				case keyBrightnessDown:
+					adjustBrightness(-brightnessStep)
+				default:
+					sendKey(k, false)
+					sendKey(k, true)
+				}
 			}
 		})
 	case "scroll":

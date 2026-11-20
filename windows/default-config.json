@@ -4,6 +4,7 @@
     "Action types: passthrough (Windows handles it: volume / mute), shortcut, scroll, mouse, shell, noop.",
     "shortcut keys: ctrl shift alt win + a letter/digit/f1..f24/left/right/up/down/enter/esc/space/tab/[ ] - = , . / and media names",
     "  (volume_up volume_down mute play_pause next_track previous_track). 'command'/'cmd' is treated as ctrl.",
+    "  brightness_up / brightness_down change the brightness of external monitors by 5% (needs DDC/CI on in the monitor menu).",
     "scroll: dy > 0 scrolls up, dx > 0 scrolls right; optional keys are held while scrolling (ctrl = zoom).",
     "every: act only on every Nth tick; use 2 if one detent of your knob fires an action twice.",
     "apps: key is the exe name, or 'exe|text' to match only when the window title contains text.",

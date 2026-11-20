@@ -133,7 +133,7 @@ thì trang mở thành một tab của trình duyệt mặc định. Chạy `Ant
   khởi động cùng hệ thống, đổi ngôn ngữ.
 - **Năm thẻ thao tác:** Xoay trái, Xoay phải, Nhấn, Giữ + xoay trái, Giữ + xoay phải. Mỗi thẻ có:
   - *Hành động*: loại hành động. "(theo mặc định)" nghĩa là hồ sơ app không ghi thao tác này, lấy từ hồ sơ mặc định.
-  - *Chọn nhanh*: 33 hành động có sẵn, chia nhóm; chọn một mục là thẻ được điền đủ.
+  - *Chọn nhanh*: 35 hành động có sẵn, chia nhóm; chọn một mục là thẻ được điền đủ.
   - Các ô theo loại: phím nối bằng dấu `+` (`ctrl+shift+tab`) kèm nút "Ghi phím…" để bấm tổ hợp thay vì gõ tên;
     số nấc cuộn dọc/ngang và phím giữ kèm; nút chuột; dòng lệnh. *Mỗi N nấc*: chỉ chạy mỗi N nấc. *Ghi chú*: mô tả tuỳ ý.
 - **Lưu cấu hình:** kiểm tra, ghi file và áp dụng; nút đổi màu khi có thay đổi chưa lưu. Lỗi kiểm tra hiện ở thanh dưới cùng.
@@ -276,6 +276,7 @@ Các hằng số nằm đầu `main_windows.go`: `knobWindowMs = 60`, `pendingHo
 | `winapi_windows.go` | Khai báo hàm và cấu trúc Win32 qua `syscall.NewLazyDLL` (không cgo). Tiện ích: `foregroundApp`, `windowApp`, `rawDeviceName`, `sendKey`, `sendWheel`, `sendMouseButton`, `setAutostart`, `shellOpen` |
 | `config_windows.go` | Kiểu `Config`, `Action`; `loadConfig`, `validate`; `matchesDevice` (khớp `VID:PID` trong đường dẫn thiết bị); `resolve` (chọn hành động theo app và tiêu đề) |
 | `actions_windows.go` | Bảng tên phím → mã phím ảo (`namedKeys`, `lookupKey`), `perform` chạy hành động |
+| `brightness_windows.go` | Độ sáng màn hình ngoài qua DDC/CI: `adjustBrightness` xếp yêu cầu, luồng riêng `brightnessWorker` gửi lệnh |
 | `ui_windows.go` | Cầu nối giữa lõi và trang cài đặt: `uiBackend` (trạng thái, đọc/ghi cấu hình, danh sách app, lệnh), `onMain` đưa yêu cầu từ luồng HTTP về luồng chính, `openUI` mở hoặc đưa cửa sổ lên trước, `runningApps` |
 | `lang_windows.go` | Hai ngôn ngữ cho menu khay và thông báo: `L("tiếng Việt", "English")` chọn chuỗi theo ngôn ngữ hiện tại; `setLanguage` |
 | `../ui/ui.go` | Gói dùng chung, không phụ thuộc hệ điều hành: máy chủ HTTP nội bộ, kiểm tra mã truy cập, giao diện `Backend` mà mỗi nền tảng tự cài |
@@ -346,9 +347,23 @@ của hook đều được ghi kèm mốc thời gian.
 
 ### 9.5 Nhấn giữ + xoay vẫn đổi độ sáng màn hình
 
-Hai mã `0x6F` / `0x70` không sinh phím ảo nên hook không thấy. Windows tự xử lý chúng cho màn hình tích hợp của laptop;
-với màn hình ngoài thường không có tác dụng gì. Hiện không có cách chặn trong mã này. Nếu cần chỉnh độ sáng màn hình ngoài,
-gán thao tác tới phím tắt của một công cụ DDC như Twinkle Tray hoặc Monitorian.
+Hai mã `0x6F` / `0x70` không sinh phím ảo nên hook không thấy (đã kiểm tra bằng log: không có phím nào đi kèm tín hiệu
+giữ + xoay). Phím âm lượng thì khác: dịch vụ `hidserv` đổi chúng thành phím qua `SendInput`, nên hook chặn được.
+
+Mã độ sáng do dịch vụ Power của Windows tự đọc thẳng từ thiết bị HID (`umpoext.dll`, "HID brightness device"), song song
+với app. Vì vậy mỗi lần giữ + xoay, Windows hiện biểu tượng độ sáng dù thao tác đã được gán việc khác; trên máy bàn màn hình
+không đổi vì Windows không điều khiển được màn hình ngoài, trên laptop thì màn hình tích hợp đổi độ sáng thật. Từ một app
+thường không chặn được việc này. `umpoext.dll` có đọc chính sách `MixedReality/BrightnessButtonDisabled`
+(`HKLM\SOFTWARE\Microsoft\PolicyManager\default\MixedReality`), nhưng đó là chính sách của HoloLens, chưa thử trên Windows bản thường.
+
+Để chỉnh độ sáng **màn hình ngoài**, gán thao tác tới phím `brightness_up` / `brightness_down` (bảng Chọn nhanh, nhóm
+"Màn hình", hoặc mẫu nhanh "Độ sáng màn hình"). App gửi lệnh DDC/CI thẳng tới màn hình qua `dxva2.dll`
+(`brightness_windows.go`), mỗi nấc 5%, áp dụng cho mọi màn hình cùng lúc. Lưu ý:
+
+- Màn hình phải bật DDC/CI trong menu của chính nó. Nếu không màn hình nào nhận lệnh, app báo một lần ở khay.
+- Mỗi lệnh DDC/CI mất khoảng 60 ms cho một màn hình, nên việc này chạy ở luồng riêng và gộp các nấc xoay liên tiếp lại.
+- Windows không hiện thanh độ sáng trên màn hình cho thay đổi kiểu này.
+- Màn hình tích hợp của laptop không nhận DDC/CI; với nó hãy để thao tác là "Hệ điều hành xử lý".
 
 ### 9.6 Cửa sổ cài đặt
 
@@ -374,7 +389,7 @@ Theo thứ tự ưu tiên:
 3. Thử cả ba kiểu kết nối (dây, dongle, Bluetooth), vì đường dẫn thiết bị và dạng gói có thể khác nhau.
 4. Nhúng icon vào exe (file `.syso`), thay cho việc đọc icon từ file rời.
 5. Hỏi lại khi đóng cửa sổ cài đặt mà chưa lưu; hiện icon thật của app trong thanh bên.
-6. Thêm hành động độ sáng qua DDC nếu cần cho màn hình ngoài.
+6. Độ sáng cho màn hình tích hợp của laptop (WMI hoặc `\.\LCD`), và chọn riêng từng màn hình thay vì tất cả.
 7. Ký số file exe để hết cảnh báo SmartScreen.
 
 ## 11. Khắc phục sự cố
