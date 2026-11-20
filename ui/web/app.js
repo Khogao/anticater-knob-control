@@ -715,7 +715,9 @@ function ledCard() {
     config.led.apps = config.led.apps || {};
     return config.led;
   };
-  const pick = el('input', { type: 'color', value: hex(colour) });
+  // The colour in force now: the one set here, or the automatic one the app reports.
+  const shown = colour || (state && state.ledColours && state.ledColours[key]) || '';
+  const pick = el('input', { type: 'color', value: hex(shown) });
   pick.addEventListener('input', () => {
     ensure().apps[key] = pick.value.slice(1).toUpperCase();
     markDirty();
@@ -730,7 +732,8 @@ function ledCard() {
     el('div', { class: 'row' },
       el('span', { text: selected === '' ? L('Màu ở màn hình nền', 'Colour on the desktop') : L('Màu khi dùng app này', 'Colour in this app') }),
       pick,
-      el('span', { class: 'muted small', text: colour ? '#' + colour.toUpperCase() : L('(tự động)', '(automatic)') }),
+      el('span', { class: 'muted small', text: colour ? '#' + colour.toUpperCase()
+        : shown && /^[0-9a-f]{6}$/i.test(shown) ? '#' + shown.toUpperCase() + L(' (tự động)', ' (automatic)') : L('(tự động)', '(automatic)') }),
       clear),
   ];
   if (selected === '') {

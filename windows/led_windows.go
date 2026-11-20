@@ -87,18 +87,26 @@ func (l *LEDConfig) validate() error {
 // colour returns the line for knob-led.ps1 for this app, or "" to leave the
 // lights as they are.
 func (l *LEDConfig) colour(exe, title string) string {
+	c, factor := l.pick(exe, title)
+	return l.lineAt(c, factor)
+}
+
+// pick is the colour an app gets, before the correction for the knob's green
+// board, and the brightness factor; "" leaves the lights alone. The settings
+// page shows it as the app's current colour.
+func (l *LEDConfig) pick(exe, title string) (string, float64) {
 	lexe, ltitle := strings.ToLower(exe), strings.ToLower(title)
 	if lexe == "desktop" {
 		if c, ok := l.Apps["desktop"]; ok {
-			return l.line(c)
+			return c, 1
 		}
-		return l.line(l.Global)
+		return l.Global, 1
 	}
 	if lexe == "settings" {
 		if c, ok := l.Apps["settings"]; ok {
-			return l.line(c)
+			return c, 1
 		}
-		return l.line("FF9124") // the app's logo
+		return "FF9124", 1 // the app's logo
 	}
 	best, bestLen := "", -1
 	for key := range l.Apps {
@@ -118,15 +126,13 @@ func (l *LEDConfig) colour(exe, title string) string {
 			best, bestLen = key, score
 		}
 	}
-	c := l.Global
 	switch {
 	case best != "":
-		c = l.Apps[best]
+		return l.Apps[best], 1
 	case l.Auto:
-		hex, factor := autoColour(lexe)
-		return l.lineAt(hex, factor)
+		return autoColour(lexe)
 	}
-	return l.line(c)
+	return l.Global, 1
 }
 
 func (l *LEDConfig) line(c string) string { return l.lineAt(c, 1) }
