@@ -351,24 +351,40 @@ Hai mã `0x6F` / `0x70` không sinh phím ảo nên hook không thấy (đã ki�
 giữ + xoay). Phím âm lượng thì khác: dịch vụ `hidserv` đổi chúng thành phím qua `SendInput`, nên hook chặn được.
 
 Mã độ sáng do dịch vụ Power của Windows tự đọc thẳng từ thiết bị HID (`umpoext.dll`, "HID brightness device"), song song
-với app. Vì vậy mỗi lần giữ + xoay, Windows hiện biểu tượng độ sáng dù thao tác đã được gán việc khác; trên máy bàn màn hình
-không đổi vì Windows không điều khiển được màn hình ngoài, trên laptop thì màn hình tích hợp đổi độ sáng thật. Từ một app
-thường không chặn được việc này. `umpoext.dll` có đọc chính sách `MixedReality/BrightnessButtonDisabled`
-(`HKLM\SOFTWARE\Microsoft\PolicyManager\default\MixedReality`), nhưng đó là chính sách của HoloLens, chưa thử trên Windows bản thường.
+với app. Vì vậy mỗi lần giữ + xoay, Windows hiện biểu tượng độ sáng dù thao tác đã được gán việc khác, và màn hình tích hợp
+của laptop đổi độ sáng thật. Từ một app thường không chặn được việc này.
 
-Để chỉnh độ sáng **cả màn hình laptop lẫn màn hình ngoài**, gán thao tác tới phím `brightness_up` / `brightness_down` (bảng Chọn nhanh, nhóm
-"Màn hình", hoặc mẫu nhanh "Độ sáng màn hình"). App gửi lệnh DDC/CI thẳng tới màn hình qua `dxva2.dll`
-(`brightness_windows.go`), mỗi nấc 5%, áp dụng cho mọi màn hình cùng lúc. Lưu ý:
+**Chính sách `BrightnessButtonDisabled` không dùng được trên Windows thường** (đã đọc mã `umpoext.dll` 10.0.26100.8875,
+21/11/2026). Mỗi lần nhận mã độ sáng, `umpoext.dll` có xem cờ "bỏ qua theo chính sách", nhưng nó chỉ đọc giá trị
+`PolicyManager\Current\Device\MixedReality\BrightnessButtonDisabled` khi `RtlGetDeviceFamilyInfoEnum` trả về 10 (HoloLens).
+Trên máy tính thường (giá trị 3) cờ luôn tắt, đổi registry không có tác dụng.
 
-- Màn hình phải bật DDC/CI trong menu của chính nó. Nếu không màn hình nào nhận lệnh, app báo một lần ở khay.
-- Mỗi lệnh DDC/CI mất khoảng 60 ms cho một màn hình, nên việc này chạy ở luồng riêng và gộp các nấc xoay liên tiếp lại.
-- Windows không hiện thanh độ sáng trên màn hình cho thay đổi kiểu này.
-- Màn hình tích hợp của laptop không nhận DDC/CI; app chỉnh nó qua thiết bị `\\.\LCD` của driver màn hình (đã thử trên ThinkPad P1 Gen 5, 21/11/2026).
-  Máy bàn không có `\\.\LCD` thì app bỏ qua bước này.
-- Hồ sơ mặc định gán giữ + xoay cho `brightness_up` / `brightness_down`. Nếu Windows vẫn tự đọc mã độ sáng của núm thì màn hình
-  laptop đổi hai lần mỗi nấc (một lần của Windows, một lần của app) và biểu tượng độ sáng vẫn hiện. Muốn chỉ app chỉnh,
-  phải tắt nút độ sáng của Windows bằng chính sách ở trên; khi chưa tắt được thì gán giữ + xoay ở hồ sơ mặc định thành
-  `passthrough`, chấp nhận màn hình ngoài không đổi.
+**Cách chặn: đổi tín hiệu ngay trong núm.** Phần mềm cấu hình của hãng (bản Qt 6 có `ble_helper.exe`, ghi cấu hình qua
+Bluetooth, nhận đời núm `05AC:022C`) cho gán phím cho từng thao tác. Gán:
+
+| Thao tác | Gán thành |
+|---|---|
+| Giữ + xoay phải | F13 |
+| Giữ + xoay trái | Shift + F13 |
+
+App nhận F13 trong hook bàn phím (`knobKeyGesture`): F13 không kèm Shift là `press_rotate_right`, có Shift là
+`press_rotate_left`. Phím F13 bị nuốt cả lúc nhấn lẫn lúc nhả, không tới ứng dụng khác. Bàn phím thường không có F13; nếu
+bàn phím của bạn có F13 thật thì phím đó cũng bị coi là của núm. Muốn trả núm về như cũ, gán lại hai thao tác về
+"tăng độ sáng" / "giảm độ sáng" trong phần mềm của hãng.
+
+**Chỉnh độ sáng theo màn hình đang có con trỏ chuột** (giống macOS): gán thao tác tới `brightness_up` / `brightness_down`
+(bảng Chọn nhanh, nhóm "Màn hình", hoặc mẫu nhanh "Độ sáng màn hình"). Hồ sơ mặc định đã gán giữ + xoay như vậy. Mỗi nấc 5%.
+
+- Màn hình tích hợp của laptop: app nhận ra nó qua `QueryDisplayConfig` (kiểu kết nối nội bộ) và chỉnh qua thiết bị `\\.\LCD`
+  của driver màn hình.
+- Màn hình ngoài: lệnh DDC/CI qua `dxva2.dll`. Màn hình phải bật DDC/CI trong menu của chính nó. Màn hình đang có con trỏ
+  không nhận lệnh thì app báo một lần ở khay.
+- Mỗi lệnh DDC/CI mất khoảng 60 ms, nên việc này chạy ở luồng riêng và gộp các nấc xoay liên tiếp lại.
+- Windows không hiện thanh độ sáng cho thay đổi kiểu này.
+- Đã thử trên ThinkPad P1 Gen 5 với một màn hình ngoài (21/11/2026): cả hai màn hình tăng giảm 5% rồi về đúng mức cũ
+  (`KNOB_TEST_DDC=1 go test ./windows -run Brightness -v`).
+- Nếu núm chưa đổi sang F13 mà vẫn gán `brightness_up` / `brightness_down`, màn hình laptop đổi hai lần mỗi nấc (một lần
+  của Windows, một lần của app) khi con trỏ ở màn hình laptop, và đổi theo Windows cả khi con trỏ ở màn hình ngoài.
 
 ### 9.6 Cửa sổ cài đặt
 

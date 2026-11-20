@@ -230,12 +230,32 @@ func onKnobReport(report []byte, msgTime uint32) {
 	if paused {
 		return
 	}
+	runGesture(gesture, fmt.Sprintf("report % x  time=%d", report, msgTime))
+}
+
+// knobKeyGesture maps the keys the knob sends once its hold + turn has been
+// reassigned in the vendor's configuration app: F13 for hold + turn right,
+// Shift + F13 for hold + turn left. The knob's default brightness reports are
+// read by Windows itself and always show the brightness flyout (README 9.5);
+// F13 is a key no ordinary keyboard has, so it can be claimed outright.
+func knobKeyGesture(vk uint32) string {
+	if vk != vkF13 {
+		return ""
+	}
+	if s, _, _ := pGetAsyncKeyState.Call(vkShift); s&0x8000 != 0 {
+		return "press_rotate_left"
+	}
+	return "press_rotate_right"
+}
+
+func runGesture(gesture, origin string) {
+	lastKnobMs = tickMs()
 	recognizedCount++
 	gestureCounts[gesture]++
 	exe, title := currentApp()
 	act, source := cfg.resolve(gesture, exe, title)
 	lastEventText = fmt.Sprintf("%s in %s -> %s", gesture, orDash(exe), describe(act, source))
-	logf("report % x  time=%d  %s  app=%s  -> %s", report, msgTime, gesture, exe, describe(act, source))
+	logf("%s  %s  app=%s  -> %s", origin, gesture, exe, describe(act, source))
 	if act.isPassthrough() || act.Type == "noop" {
 		return
 	}
@@ -281,6 +301,18 @@ func hookProc(code int32, wParam, lParam uintptr) uintptr {
 		// report), so the flag cannot be used to skip them. Only keys this app
 		// sent itself, recognized by their mark, are let through untouched.
 		if k.ExtraInfo != ownInputMark {
+			if gesture := knobKeyGesture(k.VkCode); gesture != "" {
+				// Swallow both the press and the release; act once, on the press,
+				// from the message loop so the hook returns at once.
+				if wParam == wmKeyDown || wParam == wmSysKeyDown {
+					for i, g := range gestureNames {
+						if g == gesture {
+							pPostMessageW.Call(hwndMain, wmKnobKey, uintptr(i), uintptr(k.Time))
+						}
+					}
+				}
+				return 1
+			}
 			// Diagnostic: a key outside the typing range that coincides with a
 			// knob report is probably one the knob produced and is not handled.
 			if vk := k.VkCode; gestureForVK(vk) == "" && (vk < 0x08 || (vk > 0xA5 && vk < 0xBA) || vk > 0xE2) && knobReportedNear(k.Time) {
@@ -573,6 +605,12 @@ func wndProc(hwnd uintptr, message uint32, wParam, lParam uintptr) uintptr {
 			flushPending()
 		case timerHousekeeping:
 			housekeeping()
+		}
+		return 0
+	case wmKnobKey:
+		if int(wParam) < len(gestureNames) {
+			rawCount++
+			runGesture(gestureNames[wParam], fmt.Sprintf("key F13 time=%d", uint32(lParam)))
 		}
 		return 0
 	case wmUICall:

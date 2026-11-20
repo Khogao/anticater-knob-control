@@ -2,54 +2,70 @@ package main
 
 import (
 	"os"
+	"syscall"
 	"testing"
 	"time"
 )
 
-// Talks to the real monitors, so it only runs when asked:
+// Talks to the real screens, so it only runs when asked:
 //
 //	KNOB_TEST_DDC=1 go test ./windows -run Brightness -v
 //
-// It raises the brightness one step and puts it back.
+// For every screen it moves the brightness one step and puts it back.
 func TestBrightnessRoundTrip(t *testing.T) {
 	if os.Getenv("KNOB_TEST_DDC") == "" {
-		t.Skip("set KNOB_TEST_DDC=1 to change the brightness of the attached monitors")
+		t.Skip("set KNOB_TEST_DDC=1 to change the brightness of the attached screens")
 	}
-	applyBrightness(0)
-	if len(brightnessLevels) == 0 {
-		t.Fatal("no physical monitors found")
+	var monitors []uintptr
+	enum := syscall.NewCallback(func(h, _, _, _ uintptr) uintptr { monitors = append(monitors, h); return 1 })
+	user32.NewProc("EnumDisplayMonitors").Call(0, 0, enum, 0)
+	if len(monitors) == 0 {
+		t.Fatal("no screens found")
 	}
-	before := append([]monitorLevel(nil), brightnessLevels...)
-	for i, l := range before {
-		t.Logf("monitor %d: ddc=%v level %d (range %d..%d)", i, l.ok, l.cur, l.min, l.max)
-	}
-	step := brightnessStep
-	if before[0].ok && before[0].cur+step > before[0].max {
-		step = -step
-	}
-	applyBrightness(step)
-	reread()
-	for i, l := range brightnessLevels {
-		t.Logf("monitor %d after %+d: %d", i, step, l.cur)
-		if before[i].ok && l.cur == before[i].cur && before[i].cur+step <= before[i].max && before[i].cur+step >= before[i].min {
-			t.Errorf("monitor %d did not move", i)
+	internal := internalDisplays()
+	t.Logf("built-in displays: %v", internal)
+	for _, h := range monitors {
+		device := monitorDevice(h)
+		before, ok := level(h, device)
+		if !ok {
+			t.Logf("%s: no brightness control (DDC/CI off, or not supported)", device)
+			continue
 		}
-	}
-	applyBrightness(-step)
-	reread()
-	for i, l := range brightnessLevels {
-		t.Logf("monitor %d restored: %d", i, l.cur)
-		if before[i].ok && l.cur != before[i].cur {
-			t.Errorf("monitor %d is at %d, was %d", i, l.cur, before[i].cur)
+		step := brightnessStep
+		if before.cur+step > before.max {
+			step = -step
+		}
+		applyBrightness(h, step)
+		after, _ := level(h, device)
+		applyBrightness(h, -step)
+		restored, _ := level(h, device)
+		t.Logf("%s (built-in=%v): %d -> %d -> %d", device, internal[device], before.cur, after.cur, restored.cur)
+		if after.cur != before.cur+step {
+			t.Errorf("%s did not move by %d", device, step)
+		}
+		if restored.cur != before.cur {
+			t.Errorf("%s is at %d, was %d", device, restored.cur, before.cur)
 		}
 	}
 }
 
-// reread fetches the levels from the hardware instead of trusting the cache.
-func reread() {
-	time.Sleep(200 * time.Millisecond) // some monitors report the old value for a moment
-	for i := range brightnessLevels {
-		brightnessLevels[i].readAt = time.Time{}
+// level reads a screen's level from the hardware instead of trusting the cache.
+func level(h uintptr, device string) (monitorLevel, bool) {
+	time.Sleep(time.Second) // screens and the panel driver report the old value for a moment
+	panelLevel.readAt = time.Time{}
+	for i := range brightnessLevels[device] {
+		brightnessLevels[device][i].readAt = time.Time{}
 	}
-	applyBrightness(0)
+	if !applyBrightness(h, 0) {
+		return monitorLevel{}, false
+	}
+	if internalDisplays()[device] {
+		return panelLevel, true
+	}
+	for _, l := range brightnessLevels[device] {
+		if l.ok {
+			return l, true
+		}
+	}
+	return monitorLevel{}, false
 }

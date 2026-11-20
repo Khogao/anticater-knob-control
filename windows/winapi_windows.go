@@ -16,6 +16,7 @@ var (
 
 	pGetMessageTime   = user32.NewProc("GetMessageTime")
 	pPostMessageW     = user32.NewProc("PostMessageW")
+	pGetAsyncKeyState = user32.NewProc("GetAsyncKeyState")
 	pLoadImageW       = user32.NewProc("LoadImageW")
 	pGetSystemMetrics = user32.NewProc("GetSystemMetrics")
 	pShowWindow       = user32.NewProc("ShowWindow")
@@ -73,6 +74,8 @@ const (
 	wmTray         = wmApp + 1
 	wmUICall       = wmApp + 2 // the settings page has work queued for this thread
 	wmShowUI       = wmApp + 3 // a second launch asks the running app to show settings
+	wmKnobKey      = wmApp + 4 // the hook saw the knob's F13; wParam indexes gestureNames
+	vkF13          = 0x7C
 	wmLButtonUp    = 0x0202
 	wmRButtonUp    = 0x0205
 	wmKeyDown      = 0x0100
