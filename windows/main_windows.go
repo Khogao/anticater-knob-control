@@ -613,6 +613,9 @@ func wndProc(hwnd uintptr, message uint32, wParam, lParam uintptr) uintptr {
 			runGesture(gestureNames[wParam], fmt.Sprintf("key F13 time=%d", uint32(lParam)))
 		}
 		return 0
+	case wmBrightnessShown:
+		osdShow(lParam, int(wParam))
+		return 0
 	case wmUICall:
 		runUICalls()
 		return 0

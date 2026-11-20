@@ -4,6 +4,7 @@ import (
 	"image"
 	"image/color"
 	"image/png"
+	"math"
 	"os"
 	"testing"
 )
@@ -17,13 +18,25 @@ func TestOSDPreview(t *testing.T) {
 		t.Skip("set KNOB_OSD_PNG to a file name to write a preview")
 	}
 	scale := 1.5
-	w, h := int(osdWidth*scale), int(osdHeight*scale)
+	w, h := int(math.Round(osdWidth*scale)), int(math.Round(osdHeight*scale))
 	img := image.NewRGBA(image.Rect(0, 0, w+40, 2*h+60))
 	for i := range img.Pix {
 		img.Pix[i] = 0x80 // grey page behind, to show the edges
 	}
 	for row, dark := range []bool{false, true} {
-		px := osdRender(w, h, scale, 60, dark, accentColor())
+		theme := currentOSDTheme()
+		if !dark {
+			theme = osdTheme{bg: hex(0xF9F9F9), edge: hex(0xD5D5D5), fg: hex(0x1B1B1B), track: hex(0x868686), fill: accentShade(4, 0x0067C0)}
+		}
+		hdc, _, _ := pGetDC.Call(0)
+		mem, px, done := osdBitmap(hdc, w, h)
+		if mem == 0 {
+			t.Fatal("no bitmap")
+		}
+		osdPaint(mem, px, w, h, scale, 60, theme)
+		px = append([]byte(nil), px...)
+		done()
+		pReleaseDC.Call(0, hdc)
 		for y := 0; y < h; y++ {
 			for x := 0; x < w; x++ {
 				i := (y*w + x) * 4
