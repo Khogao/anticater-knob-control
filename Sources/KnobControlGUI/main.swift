@@ -17,11 +17,11 @@ private enum KnobInput: String, CaseIterable, Identifiable, Codable {
 
     var title: String {
         switch self {
-        case .rotateLeft: return "左旋"
-        case .rotateRight: return "右旋"
-        case .press: return "按下"
-        case .pressRotateLeft: return "按住左旋"
-        case .pressRotateRight: return "按住右旋"
+        case .rotateLeft: return "Rotate left"
+        case .rotateRight: return "Rotate right"
+        case .press: return "Press"
+        case .pressRotateLeft: return "Hold + rotate left"
+        case .pressRotateRight: return "Hold + rotate right"
         }
     }
 }
@@ -48,22 +48,22 @@ private enum ModifierMode: String, CaseIterable, Identifiable, Codable {
 
     var title: String {
         switch self {
-        case .none: return "无修饰键"
-        case .command: return "⌘ 命令键"
-        case .shift: return "⇧ 上档键"
-        case .option: return "⌥ 选项键"
-        case .control: return "⌃ 控制键"
-        case .commandShift: return "⌘⇧ 命令键 + 上档键"
-        case .commandOption: return "⌘⌥ 命令键 + 选项键"
-        case .commandControl: return "⌘⌃ 命令键 + 控制键"
-        case .shiftOption: return "⇧⌥ 上档键 + 选项键"
-        case .shiftControl: return "⇧⌃ 上档键 + 控制键"
-        case .optionControl: return "⌥⌃ 选项键 + 控制键"
-        case .commandShiftOption: return "⌘⇧⌥ 命令键 + 上档键 + 选项键"
-        case .commandShiftControl: return "⌘⇧⌃ 命令键 + 上档键 + 控制键"
-        case .commandOptionControl: return "⌘⌥⌃ 命令键 + 选项键 + 控制键"
-        case .shiftOptionControl: return "⇧⌥⌃ 上档键 + 选项键 + 控制键"
-        case .commandShiftOptionControl: return "⌘⇧⌥⌃ 全部修饰键"
+        case .none: return "No modifier"
+        case .command: return "⌘ Command"
+        case .shift: return "⇧ Shift"
+        case .option: return "⌥ Option"
+        case .control: return "⌃ Control"
+        case .commandShift: return "⌘⇧ Command + Shift"
+        case .commandOption: return "⌘⌥ Command + Option"
+        case .commandControl: return "⌘⌃ Command + Control"
+        case .shiftOption: return "⇧⌥ Shift + Option"
+        case .shiftControl: return "⇧⌃ Shift + Control"
+        case .optionControl: return "⌥⌃ Option + Control"
+        case .commandShiftOption: return "⌘⇧⌥ Command + Shift + Option"
+        case .commandShiftControl: return "⌘⇧⌃ Command + Shift + Control"
+        case .commandOptionControl: return "⌘⌥⌃ Command + Option + Control"
+        case .shiftOptionControl: return "⇧⌥⌃ Shift + Option + Control"
+        case .commandShiftOptionControl: return "⌘⇧⌥⌃ All modifiers"
         }
     }
 
@@ -122,12 +122,12 @@ private enum ActionType: String, CaseIterable, Identifiable, Codable {
 
     var title: String {
         switch self {
-        case .shortcut: return "快捷键"
-        case .key: return "按键"
-        case .mouse: return "鼠标"
-        case .scroll: return "滚动"
-        case .shell: return "命令"
-        case .noop: return "无动作"
+        case .shortcut: return "Shortcut"
+        case .key: return "Key"
+        case .mouse: return "Mouse"
+        case .scroll: return "Scroll"
+        case .shell: return "Shell"
+        case .noop: return "No action"
         }
     }
 }
@@ -143,21 +143,21 @@ private enum ActionTemplate: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .browser: return "浏览器"
-        case .coding: return "代码编辑"
-        case .media: return "媒体控制"
-        case .design: return "设计绘图"
-        case .editing: return "剪辑时间线"
+        case .browser: return "Browser"
+        case .coding: return "Code"
+        case .media: return "Media"
+        case .design: return "Design"
+        case .editing: return "Video"
         }
     }
 
     var subtitle: String {
         switch self {
-        case .browser: return "标签页、刷新、前进后退"
-        case .coding: return "编辑器切换、命令面板、问题跳转"
-        case .media: return "音量、播放暂停、上一首下一首"
-        case .design: return "画笔大小、硬度、画笔工具"
-        case .editing: return "逐帧移动、播放暂停、大步移动"
+        case .browser: return "Tabs, reload, back/forward"
+        case .coding: return "Editor switching, command palette, problem navigation"
+        case .media: return "Volume, play/pause, previous/next track"
+        case .design: return "Brush size, hardness, brush tool"
+        case .editing: return "Frame step, play/pause, big step"
         }
     }
 }
@@ -231,7 +231,7 @@ private struct PendingPressAction {
 private final class AppCatalog: ObservableObject {
     @Published var apps: [AppInfo] = []
     @Published var query = ""
-    @Published var status = "未扫描"
+    @Published var status = "Not scanned"
 
     var filteredApps: [AppInfo] {
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
@@ -278,7 +278,7 @@ private final class AppCatalog: ObservableObject {
             }
             return $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
         }
-        status = "发现 \(apps.count) 个应用"
+        status = "Found \(apps.count) apps"
     }
 
     private func runningApps() -> [String: AppInfo] {
@@ -371,14 +371,14 @@ private final class ConfigStore: ObservableObject {
             config = try JSONDecoder().decode(MappingConfig.self, from: data)
             if url != configURL {
                 save(silent: true)
-                status = "已迁移配置到 \(configURL.path)"
+                status = "Migrated config to \(configURL.path)"
             } else {
-                status = "已加载本地配置：\(configURL.path)"
+                status = "Loaded local config: \(configURL.path)"
             }
         } catch {
             config = MappingConfig(global: globalDefaultActions(), apps: [:])
             save(silent: true)
-            status = "配置加载失败，已创建本地配置：\(configURL.path)"
+            status = "Config load failed; created a local config: \(configURL.path)"
         }
     }
 
@@ -397,7 +397,7 @@ private final class ConfigStore: ObservableObject {
     func title(for profile: ProfileID) -> String {
         switch profile {
         case .global:
-            return "全局默认"
+            return "Global default"
         case .app(let bundleID):
             return bundleID
         }
@@ -440,14 +440,14 @@ private final class ConfigStore: ObservableObject {
             config.apps[trimmed] = defaultActions()
         }
         selectedProfile = .app(trimmed)
-        status = "已添加 \(trimmed)"
+        status = "Added \(trimmed)"
         save(silent: true)
     }
 
     func addCurrentApp(template: ActionTemplate? = nil, modifierMode: ModifierMode = .none) {
         guard let app = NSWorkspace.shared.frontmostApplication,
               let bundleID = app.bundleIdentifier else {
-            status = "没有找到当前应用"
+            status = "No frontmost app found"
             return
         }
 
@@ -459,7 +459,7 @@ private final class ConfigStore: ObservableObject {
 
     func applyTemplate(_ template: ActionTemplate, modifierMode: ModifierMode = .none) {
         let actions = templateActions(template)
-        let modeSuffix = modifierMode == .none ? "" : "（\(modifierMode.title)）"
+        let modeSuffix = modifierMode == .none ? "" : " (\(modifierMode.title))"
         switch selectedProfile {
         case .global:
             if modifierMode == .none {
@@ -467,7 +467,7 @@ private final class ConfigStore: ObservableObject {
             } else {
                 config.global = merging(actions, into: config.global, modifierMode: modifierMode)
             }
-            status = "已应用「\(template.title)」模板到全局默认\(modeSuffix)"
+            status = "Applied template '\(template.title)' to Global default\(modeSuffix)"
         case .app(let bundleID):
             if modifierMode == .none {
                 config.apps[bundleID] = actions
@@ -476,14 +476,14 @@ private final class ConfigStore: ObservableObject {
                 appActions = merging(actions, into: appActions, modifierMode: modifierMode)
                 config.apps[bundleID] = appActions
             }
-            status = "已应用「\(template.title)」模板\(modeSuffix)"
+            status = "Applied template '\(template.title)'\(modeSuffix)"
         }
         save(silent: true)
     }
 
     func restoreGlobalMediaDefault() {
         config.global = globalDefaultActions()
-        status = "已恢复全局音量默认"
+        status = "Restored global volume default"
         save(silent: true)
     }
 
@@ -491,7 +491,7 @@ private final class ConfigStore: ObservableObject {
         guard case .app(let bundleID) = selectedProfile else { return }
         config.apps.removeValue(forKey: bundleID)
         selectedProfile = .global
-        status = "已删除 \(bundleID)"
+        status = "Deleted \(bundleID)"
         save(silent: true)
     }
 
@@ -499,9 +499,9 @@ private final class ConfigStore: ObservableObject {
         do {
             let data = try Data(contentsOf: configURL)
             config = try JSONDecoder().decode(MappingConfig.self, from: data)
-            status = "已重新加载本地配置：\(configURL.path)"
+            status = "Reloaded local config: \(configURL.path)"
         } catch {
-            status = "重新加载失败：\(error.localizedDescription)"
+            status = "Reload failed: \(error.localizedDescription)"
         }
     }
 
@@ -516,11 +516,11 @@ private final class ConfigStore: ObservableObject {
             let data = try encoder.encode(config)
             try data.write(to: configURL)
             if !silent {
-                status = "已保存本地配置：\(configURL.path)"
+                status = "Saved local config: \(configURL.path)"
             }
         } catch {
             if !silent {
-                status = "保存失败：\(error.localizedDescription)"
+                status = "Save failed: \(error.localizedDescription)"
             }
         }
     }
@@ -541,22 +541,22 @@ private final class ConfigStore: ObservableObject {
         if let lockedBundleID, lockedBundleID == activeBundleID {
             if let appActions = config.apps[activeBundleID] {
                 if let action = appActions[modifierMode.mappingKey(for: input)], modifierMode != .none {
-                    return ActionResolution(action: action, source: "\(activeAppName) 映射 · \(modifierMode.compactTitle)")
+                    return ActionResolution(action: action, source: "\(activeAppName) mapping · \(modifierMode.compactTitle)")
                 }
                 if let action = appActions[input.rawValue] {
-                    return ActionResolution(action: action, source: "\(activeAppName) 映射")
+                    return ActionResolution(action: action, source: "\(activeAppName) mapping")
                 }
             }
             if let action = config.global[modifierMode.mappingKey(for: input)], modifierMode != .none {
-                return ActionResolution(action: action, source: "全局默认 · \(modifierMode.compactTitle)")
+                return ActionResolution(action: action, source: "Global default · \(modifierMode.compactTitle)")
             }
-            return ActionResolution(action: config.global[input.rawValue], source: "全局默认")
+            return ActionResolution(action: config.global[input.rawValue], source: "Global default")
         }
 
         if let action = config.global[modifierMode.mappingKey(for: input)], modifierMode != .none {
-            return ActionResolution(action: action, source: "全局默认 · \(modifierMode.compactTitle)")
+            return ActionResolution(action: action, source: "Global default · \(modifierMode.compactTitle)")
         }
-        return ActionResolution(action: config.global[input.rawValue], source: "全局默认")
+        return ActionResolution(action: config.global[input.rawValue], source: "Global default")
     }
 
     private func merging(_ source: [String: ActionConfig], into target: [String: ActionConfig], modifierMode: ModifierMode) -> [String: ActionConfig] {
@@ -592,8 +592,8 @@ private final class FrontmostAppModel: ObservableObject {
 @MainActor
 private final class KnobService: ObservableObject {
     @Published var isRunning = false
-    @Published var deviceStatus = "未启动"
-    @Published var lastEvent = "暂无事件"
+    @Published var deviceStatus = "Not started"
+    @Published var lastEvent = "No events yet"
     @Published private(set) var lockedBundleID: String?
     @Published private(set) var lockedAppName: String?
     @Published private(set) var inputCounts: [KnobInput: Int] = [:]
@@ -603,10 +603,20 @@ private final class KnobService: ObservableObject {
     @Published private(set) var rawEventCount = 0
     @Published private(set) var decodedEventCount = 0
     @Published private(set) var ignoredEventCount = 0
-    @Published private(set) var lastRawEvent = "暂无 HID 输入"
+    @Published private(set) var lastRawEvent = "No HID input yet"
     @Published private(set) var recentRawEvents: [String] = []
-    @Published private(set) var inputAccessStatus = "输入监控：未检查"
-    @Published private(set) var accessibilityStatus = "辅助功能：未检查"
+    @Published private(set) var inputAccessStatus = "Input Monitoring: not checked"
+    @Published private(set) var accessibilityStatus = "Accessibility: not checked"
+
+    // When on, each app's mapping applies as soon as that app is frontmost and a
+    // press acts immediately; the triple-press lock is not used.
+    @Published var autoSwitch: Bool = UserDefaults.standard.object(forKey: "autoSwitch") as? Bool ?? true {
+        didSet {
+            UserDefaults.standard.set(autoSwitch, forKey: "autoSwitch")
+            flushPendingPressActions()
+            lastEvent = autoSwitch ? "\(clock()) Auto-switch on" : "\(clock()) Auto-switch off"
+        }
+    }
 
     private let triplePressGap: TimeInterval = 0.55
     private var manager: IOHIDManager?
@@ -615,53 +625,45 @@ private final class KnobService: ObservableObject {
     private var pendingPressWorkItem: DispatchWorkItem?
     private var pendingPressTargetApp: AppContext?
     private var lastExternalApp: AppContext?
-    private var listenMode = "未监听"
+    private var listenMode = "Not listening"
     private var connectedDeviceName: String?
-    private var hidOpenStatus = "尚未打开 HID manager"
+    private var hidOpenStatus = "HID manager not opened yet"
 
     var lockModeTitle: String {
-        if let lockedAppName {
-            return "已锁定 \(lockedAppName)"
+        if autoSwitch {
+            return "Auto (frontmost app)"
         }
-        return "全局默认"
+        if let lockedAppName {
+            return "Locked to \(lockedAppName)"
+        }
+        return "Global default"
     }
 
     func effectiveMappingTitle(frontmostBundleID: String, frontmostName: String) -> String {
         if isSelfApp(bundleID: frontmostBundleID) {
-            return "全局默认"
+            return "Global default"
+        }
+        if autoSwitch {
+            let hasMapping = store?.configuredAppIDsWithActions.contains(frontmostBundleID) == true
+            return hasMapping ? "\(frontmostName) mapping" : "Global default"
         }
         guard let lockedBundleID else {
-            return "全局默认"
+            return "Global default"
         }
         if lockedBundleID == frontmostBundleID {
-            return "\(frontmostName) 映射"
+            return "\(frontmostName) mapping"
         }
-        return "全局默认"
+        return "Global default"
     }
 
     func toggle(store: ConfigStore) {
         isRunning ? stop() : start(store: store)
     }
 
-    func start(store: ConfigStore) {
-        guard !isRunning else { return }
-
-        refreshInputAccessStatus()
-        refreshAccessibilityStatus()
-        guard hasInputMonitoringAccess() else {
-            let granted = IOHIDRequestAccess(kIOHIDRequestTypeListenEvent)
-            refreshInputAccessStatus()
-            deviceStatus = "等待输入监控权限"
-            hidOpenStatus = "未打开：缺少输入监控权限"
-            lastEvent = granted
-                ? "\(clock()) 输入监控权限已允许，请重新启动监听"
-                : "\(clock()) 请允许输入监控后再启动监听"
-            return
-        }
-
-        self.store = store
+    // Builds a manager matched to the knob with all callbacks registered and
+    // scheduled on the main run loop. Not opened yet.
+    private func makeManager() -> IOHIDManager {
         let manager = IOHIDManagerCreate(kCFAllocatorDefault, IOOptionBits(kIOHIDOptionsTypeNone))
-        self.manager = manager
 
         IOHIDManagerSetDeviceMatching(manager, [
             kIOHIDVendorIDKey: vendorID,
@@ -677,7 +679,7 @@ private final class KnobService: ObservableObject {
         IOHIDManagerRegisterDeviceRemovalCallback(manager, { context, _, _, _ in
             guard let context else { return }
             let service = Unmanaged<KnobService>.fromOpaque(context).takeUnretainedValue()
-            Task { @MainActor in service.deviceStatus = "设备已断开" }
+            Task { @MainActor in service.deviceStatus = "Device disconnected" }
         }, Unmanaged.passUnretained(self).toOpaque())
 
         IOHIDManagerRegisterInputValueCallback(manager, { context, _, _, value in
@@ -701,54 +703,93 @@ private final class KnobService: ObservableObject {
         }, Unmanaged.passUnretained(self).toOpaque())
 
         IOHIDManagerScheduleWithRunLoop(manager, CFRunLoopGetMain(), CFRunLoopMode.defaultMode.rawValue)
+        return manager
+    }
+
+    private func discard(_ manager: IOHIDManager) {
+        IOHIDManagerUnscheduleFromRunLoop(manager, CFRunLoopGetMain(), CFRunLoopMode.defaultMode.rawValue)
+        IOHIDManagerClose(manager, IOOptionBits(kIOHIDOptionsTypeNone))
+    }
+
+    func start(store: ConfigStore) {
+        guard !isRunning else { return }
+
+        refreshInputAccessStatus()
+        refreshAccessibilityStatus()
+        guard hasInputMonitoringAccess() else {
+            let granted = IOHIDRequestAccess(kIOHIDRequestTypeListenEvent)
+            refreshInputAccessStatus()
+            deviceStatus = "Waiting for Input Monitoring permission"
+            hidOpenStatus = "Not opened: Input Monitoring permission missing"
+            lastEvent = granted
+                ? "\(clock()) Input Monitoring allowed; start listening again"
+                : "\(clock()) Allow Input Monitoring, then start listening"
+            return
+        }
+
+        self.store = store
+        var manager = makeManager()
+        self.manager = manager
 
         let seizedResult = IOHIDManagerOpen(manager, IOOptionBits(kIOHIDOptionsTypeSeizeDevice))
         if seizedResult == kIOReturnSuccess {
-            listenMode = "独占监听"
-            deviceStatus = "已启动独占监听"
+            listenMode = "Exclusive listening"
+            deviceStatus = "Exclusive listening started"
         } else {
+            // macOS only lets root seize keyboard-class devices, which is how
+            // this knob enumerates over USB, the 2.4G dongle and Bluetooth.
+            // Start over with a fresh manager: reopening the one whose seize
+            // failed delivered no input at all.
+            discard(manager)
+            manager = makeManager()
+            self.manager = manager
             let openResult = IOHIDManagerOpen(manager, IOOptionBits(kIOHIDOptionsTypeNone))
             guard openResult == kIOReturnSuccess else {
-                deviceStatus = "启动失败：独占 0x\(hex(UInt32(bitPattern: seizedResult), width: 8)) / 普通 0x\(hex(UInt32(bitPattern: openResult), width: 8))"
-                hidOpenStatus = "打开失败：seize=0x\(hex(UInt32(bitPattern: seizedResult), width: 8)) normal=0x\(hex(UInt32(bitPattern: openResult), width: 8))"
-                lastEvent = "请在系统设置里重新添加「手轮控制台」到输入监控"
+                discard(manager)
+                deviceStatus = "Start failed: exclusive 0x\(hex(UInt32(bitPattern: seizedResult), width: 8)) / normal 0x\(hex(UInt32(bitPattern: openResult), width: 8))"
+                hidOpenStatus = "Open failed: seize=0x\(hex(UInt32(bitPattern: seizedResult), width: 8)) normal=0x\(hex(UInt32(bitPattern: openResult), width: 8))"
+                lastEvent = "Re-add Knob Console to Input Monitoring in System Settings"
                 self.manager = nil
                 return
             }
-            listenMode = "普通监听"
-            deviceStatus = "已启动普通监听，系统音量可能仍会响应"
+            listenMode = "Normal listening"
+            if NativeKeyBlocker.start() {
+                deviceStatus = "Normal listening started; the knob's own volume keys are blocked"
+            } else {
+                deviceStatus = "Normal listening started; system volume may still respond (allow Accessibility)"
+            }
         }
-        hidOpenStatus = "\(listenMode)：seize=0x\(hex(UInt32(bitPattern: seizedResult), width: 8))"
+        hidOpenStatus = "\(listenMode): seize=0x\(hex(UInt32(bitPattern: seizedResult), width: 8))"
 
         if let devices = IOHIDManagerCopyDevices(manager) as? Set<IOHIDDevice>, let first = devices.first {
             updateConnectedDevice(deviceName(first))
         }
 
         isRunning = true
-        lastEvent = "\(clock()) 已启动监听"
+        lastEvent = "\(clock()) Listening started"
     }
 
     func stop() {
         guard let manager else { return }
         flushPendingPressActions()
-        IOHIDManagerUnscheduleFromRunLoop(manager, CFRunLoopGetMain(), CFRunLoopMode.defaultMode.rawValue)
-        IOHIDManagerClose(manager, IOOptionBits(kIOHIDOptionsTypeNone))
+        NativeKeyBlocker.stop()
+        discard(manager)
         self.manager = nil
         isRunning = false
-        listenMode = "未监听"
-        hidOpenStatus = "已停止"
-        deviceStatus = "已停止"
-        lastEvent = "\(clock()) 已停止监听"
+        listenMode = "Not listening"
+        hidOpenStatus = "Stopped"
+        deviceStatus = "Stopped"
+        lastEvent = "\(clock()) Listening stopped"
     }
 
     func clearMappingLock(showOverlay: Bool = false) {
         lockedBundleID = nil
         lockedAppName = nil
-        lastEvent = "\(clock()) 已恢复全局默认"
+        lastEvent = "\(clock()) Global default restored"
         if showOverlay {
             showMappingStateOverlay(
-                title: "已恢复全局默认",
-                subtitle: "使用全局音量默认",
+                title: "Global default restored",
+                subtitle: "Using global volume default",
                 systemImage: "lock.open.fill"
             )
         }
@@ -757,10 +798,10 @@ private final class KnobService: ObservableObject {
     func selectMappingLock(bundleID: String, appName: String) {
         lockedBundleID = bundleID
         lockedAppName = appName
-        lastEvent = "\(clock()) 已切换映射：\(appName)"
+        lastEvent = "\(clock()) Mapping switched: \(appName)"
         showMappingStateOverlay(
-            title: "已切换到 \(appName)",
-            subtitle: "应用映射已准备",
+            title: "Switched to \(appName)",
+            subtitle: "App mapping ready",
             systemImage: "lock.fill"
         )
     }
@@ -777,9 +818,9 @@ private final class KnobService: ObservableObject {
         rawEventCount = 0
         decodedEventCount = 0
         ignoredEventCount = 0
-        lastRawEvent = "暂无 HID 输入"
+        lastRawEvent = "No HID input yet"
         recentRawEvents = []
-        lastEvent = "\(clock()) 已清空输入计数"
+        lastEvent = "\(clock()) Input counters cleared"
     }
 
     func copyDebugReport(store: ConfigStore, frontmost: FrontmostAppModel) {
@@ -788,13 +829,13 @@ private final class KnobService: ObservableObject {
         let report = debugReport(store: store, frontmost: frontmost)
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(report, forType: .string)
-        lastEvent = "\(clock()) 已复制诊断报告"
+        lastEvent = "\(clock()) Diagnostic report copied"
     }
 
     func testSystemVolume() {
         let action = ActionConfig(
             type: "key",
-            description: "音量自检",
+            description: "Volume self-test",
             keys: ["volume_up"],
             button: nil,
             clicks: nil,
@@ -803,10 +844,10 @@ private final class KnobService: ObservableObject {
             command: nil
         )
         let result = ActionExecutor.run(action)
-        let detail = result.detail ?? action.description ?? "音量自检"
-        lastEvent = "\(clock()) 音量自检 / \(detail) / \(result.ok ? "ok" : "failed")"
+        let detail = result.detail ?? action.description ?? "Volume self-test"
+        lastEvent = "\(clock()) Volume self-test / \(detail) / \(result.ok ? "ok" : "failed")"
         OverlayPresenter.shared.show(result.overlay ?? ActionOverlayPayload(
-            title: result.ok ? "音量自检完成" : "音量自检失败",
+            title: result.ok ? "Volume self-test passed" : "Volume self-test failed",
             subtitle: detail,
             systemImage: result.ok ? "speaker.wave.2.fill" : "exclamationmark.triangle.fill",
             tint: result.ok ? .accentColor : .red,
@@ -818,13 +859,13 @@ private final class KnobService: ObservableObject {
     func requestInputMonitoringAccess() {
         let granted = IOHIDRequestAccess(kIOHIDRequestTypeListenEvent)
         refreshInputAccessStatus()
-        lastEvent = granted ? "\(clock()) 输入监控权限已允许" : "\(clock()) 已请求输入监控权限，请在系统设置确认"
+        lastEvent = granted ? "\(clock()) Input Monitoring allowed" : "\(clock()) Input Monitoring requested; confirm in System Settings"
     }
 
     func openInputMonitoringSettings() {
         if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent") {
             NSWorkspace.shared.open(url)
-            lastEvent = "\(clock()) 已打开输入监控设置"
+            lastEvent = "\(clock()) Input Monitoring settings opened"
         }
     }
 
@@ -832,13 +873,13 @@ private final class KnobService: ObservableObject {
         let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
         let granted = AXIsProcessTrustedWithOptions(options)
         refreshAccessibilityStatus()
-        lastEvent = granted ? "\(clock()) 辅助功能权限已允许" : "\(clock()) 已请求辅助功能权限，请在系统设置确认"
+        lastEvent = granted ? "\(clock()) Accessibility allowed" : "\(clock()) Accessibility requested; confirm in System Settings"
     }
 
     func openAccessibilitySettings() {
         if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
             NSWorkspace.shared.open(url)
-            lastEvent = "\(clock()) 已打开辅助功能设置"
+            lastEvent = "\(clock()) Accessibility settings opened"
         }
     }
 
@@ -849,7 +890,7 @@ private final class KnobService: ObservableObject {
         rememberExternalApp(app)
         recordInput(input, modifierMode: modifierMode)
 
-        if input == .press, modifierMode == .none {
+        if input == .press, modifierMode == .none, !autoSwitch {
             handlePress(app: app, store: store)
             return
         }
@@ -893,10 +934,10 @@ private final class KnobService: ObservableObject {
             return
         }
 
-        lastEvent = "\(clock()) press / \(targetApp.name) / 等待三击确认（\(pendingPressActions.count)/3）"
+        lastEvent = "\(clock()) press / \(targetApp.name) / waiting for triple press (\(pendingPressActions.count)/3)"
         OverlayPresenter.shared.show(ActionOverlayPayload(
-            title: "三击确认 \(pendingPressActions.count)/3",
-            subtitle: "目标：\(targetApp.name)",
+            title: "Triple press \(pendingPressActions.count)/3",
+            subtitle: "Target: \(targetApp.name)",
             systemImage: "hand.tap.fill",
             tint: .accentColor,
             progress: Double(pendingPressActions.count) / 3.0,
@@ -907,10 +948,10 @@ private final class KnobService: ObservableObject {
 
     private func toggleMappingLock(for app: AppContext) {
         guard app.bundleID != "unknown" else {
-            lastEvent = "\(clock()) 三击 / 没有找到当前应用"
+            lastEvent = "\(clock()) triple press / no frontmost app found"
             OverlayPresenter.shared.show(ActionOverlayPayload(
-                title: "三击失败",
-                subtitle: "没有找到当前应用",
+                title: "Triple press failed",
+                subtitle: "No frontmost app found",
                 systemImage: "exclamationmark.triangle.fill",
                 tint: .orange,
                 progress: nil,
@@ -921,10 +962,10 @@ private final class KnobService: ObservableObject {
         guard !isSelfApp(bundleID: app.bundleID) else {
             lockedBundleID = nil
             lockedAppName = nil
-            lastEvent = "\(clock()) 三击 / 控制台使用全局默认"
+            lastEvent = "\(clock()) triple press / console uses Global default"
             showMappingStateOverlay(
-                title: "已恢复全局默认",
-                subtitle: "控制台不启用应用锁定",
+                title: "Global default restored",
+                subtitle: "App lock is not used for the console",
                 systemImage: "lock.open.fill"
             )
             return
@@ -933,19 +974,19 @@ private final class KnobService: ObservableObject {
         if lockedBundleID == app.bundleID {
             lockedBundleID = nil
             lockedAppName = nil
-            lastEvent = "\(clock()) 三击 / 已恢复全局默认"
+            lastEvent = "\(clock()) triple press / Global default restored"
             showMappingStateOverlay(
-                title: "已恢复全局默认",
+                title: "Global default restored",
                 subtitle: app.name,
                 systemImage: "lock.open.fill"
             )
         } else {
             lockedBundleID = app.bundleID
             lockedAppName = app.name
-            lastEvent = "\(clock()) 三击 / 已锁定 \(app.name)"
+            lastEvent = "\(clock()) triple press / locked to \(app.name)"
             showMappingStateOverlay(
-                title: "已锁定 \(app.name)",
-                subtitle: "应用映射已生效",
+                title: "Locked to \(app.name)",
+                subtitle: "App mapping active",
                 systemImage: "lock.fill"
             )
         }
@@ -1027,11 +1068,11 @@ private final class KnobService: ObservableObject {
     private func refreshInputAccessStatus() {
         let access = IOHIDCheckAccess(kIOHIDRequestTypeListenEvent)
         if access == kIOHIDAccessTypeGranted {
-            inputAccessStatus = "输入监控：已允许"
+            inputAccessStatus = "Input Monitoring: allowed"
         } else if access == kIOHIDAccessTypeDenied {
-            inputAccessStatus = "输入监控：未允许"
+            inputAccessStatus = "Input Monitoring: not allowed"
         } else {
-            inputAccessStatus = "输入监控：未决定"
+            inputAccessStatus = "Input Monitoring: undetermined"
         }
     }
 
@@ -1047,82 +1088,82 @@ private final class KnobService: ObservableObject {
                 || ($0.localizedName ?? "").lowercased().contains("anticater")
         }
 
-        lines.append("ANTICATER 手轮控制台诊断报告")
-        lines.append("生成时间：\(Date())")
+        lines.append("ANTICATER Knob Console diagnostic report")
+        lines.append("Generated: \(Date())")
         lines.append("")
         lines.append("App")
-        lines.append("- 名称：\(bundle.object(forInfoDictionaryKey: "CFBundleName") as? String ?? "unknown")")
-        lines.append("- Bundle ID：\(bundle.bundleIdentifier ?? "unknown")")
-        lines.append("- 版本：\(bundle.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "unknown") (\(bundle.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "unknown"))")
-        lines.append("- 路径：\(bundle.bundlePath)")
+        lines.append("- Name: \(bundle.object(forInfoDictionaryKey: "CFBundleName") as? String ?? "unknown")")
+        lines.append("- Bundle ID: \(bundle.bundleIdentifier ?? "unknown")")
+        lines.append("- Version: \(bundle.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "unknown") (\(bundle.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "unknown"))")
+        lines.append("- Path: \(bundle.bundlePath)")
         lines.append("")
-        lines.append("权限 / 状态")
-        lines.append("- 输入监控：\(inputAccessStatus)")
-        lines.append("- 辅助功能：\(accessibilityStatus)")
-        lines.append("- 是否监听中：\(isRunning ? "是" : "否")")
-        lines.append("- 设备状态：\(deviceStatus)")
-        lines.append("- HID 打开状态：\(hidOpenStatus)")
-        lines.append("- 连接设备：\(connectedDeviceName ?? "无")")
-        lines.append("- 最近动作：\(lastEvent)")
-        lines.append("- 当前前台应用：\(frontmost.name) / \(frontmost.bundleID)")
-        lines.append("- 映射模式：\(lockModeTitle)")
-        lines.append("- 配置文件：\(store.configURL.path)")
+        lines.append("Permissions / status")
+        lines.append("- Input Monitoring: \(inputAccessStatus)")
+        lines.append("- Accessibility: \(accessibilityStatus)")
+        lines.append("- Listening: \(isRunning ? "yes" : "no")")
+        lines.append("- Device status: \(deviceStatus)")
+        lines.append("- HID open status: \(hidOpenStatus)")
+        lines.append("- Connected device: \(connectedDeviceName ?? "none")")
+        lines.append("- Last action: \(lastEvent)")
+        lines.append("- Frontmost app: \(frontmost.name) / \(frontmost.bundleID)")
+        lines.append("- Mapping mode: \(lockModeTitle)")
+        lines.append("- Config file: \(store.configURL.path)")
         lines.append("")
-        lines.append("官方 ANTICATER")
+        lines.append("Official ANTICATER")
         if officialApps.isEmpty {
-            lines.append("- 未发现正在运行的官方 ANTICATER App")
+            lines.append("- Official ANTICATER app is not running")
         } else {
             for app in officialApps {
-                lines.append("- 运行中：pid=\(app.processIdentifier) name=\(app.localizedName ?? "unknown") bundle=\(app.bundleIdentifier ?? "unknown") path=\(app.bundleURL?.path ?? "unknown")")
+                lines.append("- Running: pid=\(app.processIdentifier) name=\(app.localizedName ?? "unknown") bundle=\(app.bundleIdentifier ?? "unknown") path=\(app.bundleURL?.path ?? "unknown")")
             }
         }
         lines.append("")
-        lines.append("目标设备")
-        lines.append("- 目标 VendorID：0x\(hex(vendorID, width: 4))")
-        lines.append("- 目标 ProductID：0x\(hex(productID, width: 4))")
-        lines.append("- 系统 HID 枚举：")
+        lines.append("Target device")
+        lines.append("- Target VendorID: 0x\(hex(vendorID, width: 4))")
+        lines.append("- Target ProductID: 0x\(hex(productID, width: 4))")
+        lines.append("- System HID enumeration:")
         let devices = diagnosticHIDDevices()
         if devices.isEmpty {
-            lines.append("  - 未枚举到目标或疑似 ANTICATER/CXKJ 设备")
+            lines.append("  - No target or likely ANTICATER/CXKJ device enumerated")
         } else {
             lines.append(contentsOf: devices.map { "  - \($0)" })
         }
         lines.append("")
-        lines.append("输入统计")
-        lines.append("- 原始事件：\(rawEventCount)")
-        lines.append("- 已识别：\(decodedEventCount)")
-        lines.append("- 已忽略：\(ignoredEventCount)")
-        lines.append("- 最近输入：\(lastInput.map { lastModifierMode.gestureTitle(for: $0) } ?? "暂无")")
-        lines.append("- 最后一条 HID：\(lastRawEvent)")
+        lines.append("Input statistics")
+        lines.append("- Raw events: \(rawEventCount)")
+        lines.append("- Recognized: \(decodedEventCount)")
+        lines.append("- Ignored: \(ignoredEventCount)")
+        lines.append("- Last input: \(lastInput.map { lastModifierMode.gestureTitle(for: $0) } ?? "none")")
+        lines.append("- Last HID: \(lastRawEvent)")
         for input in KnobInput.allCases {
-            lines.append("- \(input.title)：\(inputCounts[input, default: 0])")
+            lines.append("- \(input.title): \(inputCounts[input, default: 0])")
         }
         lines.append("")
-        lines.append("最近原始 HID 事件")
+        lines.append("Recent raw HID events")
         if recentRawEvents.isEmpty {
-            lines.append("- 暂无")
+            lines.append("- None")
         } else {
             lines.append(contentsOf: recentRawEvents.suffix(40).map { "- \($0)" })
         }
         lines.append("")
-        lines.append("排查提示")
-        lines.append("- 如果系统 HID 枚举里没有 0x\(hex(vendorID, width: 4))/0x\(hex(productID, width: 4))，可能是配对设备或固件/驱动的 VID/PID 不同。")
-        lines.append("- 如果输入监控不是已允许，App 会识别到设备但收不到输入。")
-        lines.append("- 如果原始事件有值但已识别为 0，请把最近原始 HID 事件发回来补映射。")
-        lines.append("- 如果官方 ANTICATER App 正在运行，可以退出后再试一次。")
+        lines.append("Troubleshooting")
+        lines.append("- If the system HID enumeration has no 0x\(hex(vendorID, width: 4))/0x\(hex(productID, width: 4)), the paired device or its firmware/driver may use a different VID/PID.")
+        lines.append("- If Input Monitoring is not allowed, the app sees the device but receives no input.")
+        lines.append("- If raw events are counted but recognized is 0, send the recent raw HID events so the mapping can be added.")
+        lines.append("- If the official ANTICATER app is running, quit it and try again.")
         return lines.joined(separator: "\n")
     }
 
     private func perform(input: KnobInput, modifierMode: ModifierMode, app: AppContext, resolution: ActionResolution) {
         let gestureTitle = modifierMode.gestureTitle(for: input)
         guard let action = resolution.action else {
-            lastEvent = "\(clock()) \(gestureTitle) / \(app.name) / \(resolution.source) / 无动作"
+            lastEvent = "\(clock()) \(gestureTitle) / \(app.name) / \(resolution.source) / no action"
             return
         }
 
         refreshAccessibilityStatus()
         if ActionExecutor.needsAccessibility(action), !AXIsProcessTrusted() {
-            lastEvent = "\(clock()) \(gestureTitle) / \(app.name) / \(resolution.source) / 需要辅助功能权限 / failed"
+            lastEvent = "\(clock()) \(gestureTitle) / \(app.name) / \(resolution.source) / Accessibility permission needed / failed"
             return
         }
 
@@ -1130,7 +1171,7 @@ private final class KnobService: ObservableObject {
         let detail = result.detail ?? (action.description?.isEmpty == false ? action.description! : action.type)
         lastEvent = "\(clock()) \(gestureTitle) / \(app.name) / \(resolution.source) / \(detail) / \(result.ok ? "ok" : "failed")"
         let overlay = result.overlay ?? ActionOverlayPayload(
-            title: result.ok ? detail : "执行失败",
+            title: result.ok ? detail : "Action failed",
             subtitle: "\(gestureTitle) · \(resolution.source)",
             systemImage: result.ok ? overlaySystemImage(for: input) : "exclamationmark.triangle.fill",
             tint: result.ok ? .accentColor : .red,
@@ -1151,7 +1192,10 @@ private final class KnobService: ObservableObject {
     }
 
     private func effectiveLockedBundleID(for app: AppContext) -> String? {
-        isSelfApp(bundleID: app.bundleID) ? nil : lockedBundleID
+        if isSelfApp(bundleID: app.bundleID) {
+            return nil
+        }
+        return autoSwitch ? app.bundleID : lockedBundleID
     }
 
     private func isSelfApp(bundleID: String) -> Bool {
@@ -1160,11 +1204,179 @@ private final class KnobService: ObservableObject {
 
     private func updateConnectedDevice(_ name: String) {
         connectedDeviceName = name
-        deviceStatus = "\(listenMode)：\(name)"
+        deviceStatus = "\(listenMode): \(name)"
     }
 
     private func refreshAccessibilityStatus() {
-        accessibilityStatus = AXIsProcessTrusted() ? "辅助功能：已允许" : "辅助功能：未允许"
+        accessibilityStatus = AXIsProcessTrusted() ? "Accessibility: allowed" : "Accessibility: not allowed"
+    }
+}
+
+// Without a seize, macOS still acts on the knob's volume / mute / brightness
+// keys. This drops those system-defined key events when one of the knob's own
+// HID reports carries about the same timestamp, so only the mapped action
+// runs. Keys from a real keyboard are held briefly and re-posted when no knob
+// report claims them.
+//
+// The tap and a second, listen-only HID manager live on their own thread and
+// compare the events' own timestamps: the main thread can lag by hundreds of
+// milliseconds while actions run, which made arrival times useless.
+private enum NativeKeyBlocker {
+    static let ownEventTag: Int64 = 0x4B4E4F42 // "KNOB": events this app posts
+    private static let matchWindow: UInt64 = 60_000_000 // ns between report and key
+    private static let holdTime: TimeInterval = 0.05
+    // NX_KEYTYPE_ sound up, sound down, brightness up, brightness down, mute, play
+    private static let blockedKeyTypes: Set<Int> = [0, 1, 2, 3, 7, 16]
+
+    private static var thread: Thread?
+    private static var runLoop: CFRunLoop?
+    private static var tap: CFMachPort?
+    // The rest is only touched on the blocker thread.
+    private static var reportTimes: [UInt64] = []
+    private static var held: [(event: CGEvent, time: UInt64, heldAt: UInt64)] = []
+    private static let timebase: mach_timebase_info_data_t = {
+        var info = mach_timebase_info_data_t()
+        mach_timebase_info(&info)
+        return info
+    }()
+
+    static func start() -> Bool {
+        guard thread == nil else { return true }
+        let mask = CGEventMask(1) << 14 // NX_SYSDEFINED
+        guard let port = CGEvent.tapCreate(
+            tap: .cgSessionEventTap,
+            place: .headInsertEventTap,
+            options: .defaultTap,
+            eventsOfInterest: mask,
+            callback: { _, type, event, _ in NativeKeyBlocker.handle(type: type, event: event) },
+            userInfo: nil
+        ) else { return false }
+
+        let ready = DispatchSemaphore(value: 0)
+        let worker = Thread {
+            guard let loop = CFRunLoopGetCurrent() else {
+                ready.signal()
+                return
+            }
+            runLoop = loop
+            reportTimes.removeAll()
+            held.removeAll()
+            let source = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, port, 0)
+            CFRunLoopAddSource(loop, source, .commonModes)
+
+            let manager = IOHIDManagerCreate(kCFAllocatorDefault, IOOptionBits(kIOHIDOptionsTypeNone))
+            IOHIDManagerSetDeviceMatching(manager, [
+                kIOHIDVendorIDKey: vendorID,
+                kIOHIDProductIDKey: productID
+            ] as CFDictionary)
+            IOHIDManagerRegisterInputValueCallback(manager, { _, _, _, value in
+                NativeKeyBlocker.noteReport(machTime: IOHIDValueGetTimeStamp(value))
+            }, nil)
+            IOHIDManagerScheduleWithRunLoop(manager, loop, CFRunLoopMode.defaultMode.rawValue)
+            IOHIDManagerOpen(manager, IOOptionBits(kIOHIDOptionsTypeNone))
+
+            CGEvent.tapEnable(tap: port, enable: true)
+            ready.signal()
+            CFRunLoopRun()
+
+            CGEvent.tapEnable(tap: port, enable: false)
+            IOHIDManagerUnscheduleFromRunLoop(manager, loop, CFRunLoopMode.defaultMode.rawValue)
+            IOHIDManagerClose(manager, IOOptionBits(kIOHIDOptionsTypeNone))
+            CFRunLoopRemoveSource(loop, source, .commonModes)
+            CFMachPortInvalidate(port)
+        }
+        worker.name = "NativeKeyBlocker"
+        worker.qualityOfService = .userInteractive
+        tap = port
+        thread = worker
+        worker.start()
+        ready.wait()
+        return true
+    }
+
+    static func stop() {
+        guard thread != nil else { return }
+        if let runLoop {
+            CFRunLoopStop(runLoop)
+        }
+        thread = nil
+        runLoop = nil
+        tap = nil
+    }
+
+    private static func nanoseconds(machTime: UInt64) -> UInt64 {
+        machTime * UInt64(timebase.numer) / UInt64(timebase.denom)
+    }
+
+    private static func noteReport(machTime: UInt64) {
+        reportTimes.append(nanoseconds(machTime: machTime))
+        if reportTimes.count > 64 {
+            reportTimes.removeFirst(reportTimes.count - 64)
+        }
+    }
+
+    private static func knobReported(near time: UInt64) -> Bool {
+        reportTimes.contains { $0 > time ? $0 - time < matchWindow : time - $0 < matchWindow }
+    }
+
+    private static func handle(type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>? {
+        if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
+            if let tap { CGEvent.tapEnable(tap: tap, enable: true) }
+            return Unmanaged.passUnretained(event)
+        }
+        guard type.rawValue == 14,
+              event.getIntegerValueField(.eventSourceUserData) != ownEventTag,
+              let nsEvent = NSEvent(cgEvent: event),
+              nsEvent.subtype.rawValue == 8,
+              blockedKeyTypes.contains((nsEvent.data1 & 0xFFFF0000) >> 16)
+        else {
+            return Unmanaged.passUnretained(event)
+        }
+        let time = event.timestamp
+        if knobReported(near: time) {
+            return nil // the knob's own key
+        }
+        // Its report may not have been delivered yet: hold the key, then decide.
+        guard let copy = event.copy(), let runLoop else {
+            return Unmanaged.passUnretained(event)
+        }
+        held.append((copy, time, DispatchTime.now().uptimeNanoseconds))
+        let timer = CFRunLoopTimerCreateWithHandler(kCFAllocatorDefault, CFAbsoluteTimeGetCurrent() + holdTime, 0, 0, 0) { _ in
+            releaseHeld()
+        }
+        CFRunLoopAddTimer(runLoop, timer, .commonModes)
+        return nil
+    }
+
+    private static func releaseHeld() {
+        let now = DispatchTime.now().uptimeNanoseconds
+        let minimumHold = UInt64(holdTime * 1_000_000_000) - 5_000_000
+        var keep: [(event: CGEvent, time: UInt64, heldAt: UInt64)] = []
+        for item in held {
+            if now - item.heldAt < minimumHold {
+                keep.append(item)
+            } else if !knobReported(near: item.time) {
+                // No knob report around it: a real keyboard key, pass it on.
+                item.event.setIntegerValueField(.eventSourceUserData, value: ownEventTag)
+                item.event.post(tap: .cgSessionEventTap)
+            }
+        }
+        held = keep
+    }
+}
+
+private let mainWindowID = "main"
+
+// Reopens the main window when it has been closed; activating the app alone
+// does not bring a closed window back.
+private struct ShowConsoleButton: View {
+    @Environment(\.openWindow) private var openWindow
+
+    var body: some View {
+        Button("Show console") {
+            openWindow(id: mainWindowID)
+            NSApp.activate(ignoringOtherApps: true)
+        }
     }
 }
 
@@ -1176,7 +1388,7 @@ private struct KnobControlApp: App {
     @StateObject private var appCatalog = AppCatalog()
 
     var body: some Scene {
-        WindowGroup {
+        Window("Knob Console", id: mainWindowID) {
             ContentView()
                 .environmentObject(store)
                 .environmentObject(frontmost)
@@ -1190,23 +1402,23 @@ private struct KnobControlApp: App {
         }
         .windowStyle(.titleBar)
 
-        MenuBarExtra("手轮控制台", systemImage: "slider.horizontal.3") {
-            Button("显示控制台") {
-                NSApp.activate(ignoringOtherApps: true)
-            }
-            Button(knobService.isRunning ? "停止监听" : "启动监听") {
+        MenuBarExtra("Knob Console", systemImage: "slider.horizontal.3") {
+            ShowConsoleButton()
+            Button(knobService.isRunning ? "Stop listening" : "Start listening") {
                 knobService.toggle(store: store)
             }
 
-            Menu("切换映射") {
+            Toggle("Auto-switch by frontmost app", isOn: $knobService.autoSwitch)
+
+            Menu("Switch mapping") {
                 Button {
                     knobService.clearMappingLock(showOverlay: true)
                 } label: {
-                    Label("全局默认", systemImage: knobService.lockedBundleID == nil ? "checkmark.circle.fill" : "circle")
+                    Label("Global default", systemImage: knobService.lockedBundleID == nil ? "checkmark.circle.fill" : "circle")
                 }
 
                 if store.configuredAppIDsWithActions.isEmpty {
-                    Text("暂无已配置应用")
+                    Text("No configured apps")
                 } else {
                     Divider()
                     ForEach(store.configuredAppIDsWithActions, id: \.self) { bundleID in
@@ -1230,10 +1442,10 @@ private struct KnobControlApp: App {
             Text(knobService.deviceStatus)
             Text(knobService.inputAccessStatus)
             Text(knobService.accessibilityStatus)
-            Text("映射模式：\(knobService.lockModeTitle)")
+            Text("Mapping mode: \(knobService.lockModeTitle)")
             Text(knobService.lastEvent)
             Divider()
-            Button("退出") {
+            Button("Quit") {
                 knobService.stop()
                 NSApp.terminate(nil)
             }
@@ -1268,18 +1480,18 @@ private struct ContentView: View {
     private var sidebar: some View {
         VStack(spacing: 12) {
             List(selection: $store.selectedProfile) {
-                Section("默认") {
-                    Text("全局默认").tag(ProfileID.global)
+                Section("Default") {
+                    Text("Global default").tag(ProfileID.global)
                 }
 
-                Section("应用") {
+                Section("Apps") {
                     ForEach(store.sortedAppIDs, id: \.self) { bundleID in
                         ConfiguredAppRow(info: appCatalog.app(bundleID: bundleID), fallbackBundleID: bundleID)
                         .tag(ProfileID.app(bundleID))
                     }
                 }
 
-                Section("发现的应用") {
+                Section("Discovered apps") {
                     ForEach(appCatalog.filteredApps) { app in
                         Button {
                             store.addApp(app)
@@ -1292,10 +1504,10 @@ private struct ContentView: View {
             }
 
             VStack(spacing: 8) {
-                TextField("搜索应用", text: $appCatalog.query)
+                TextField("Search apps", text: $appCatalog.query)
                     .textFieldStyle(.roundedBorder)
                 HStack {
-                    Button("刷新发现") {
+                    Button("Refresh") {
                         appCatalog.refresh()
                     }
                     Text(appCatalog.status)
@@ -1303,18 +1515,18 @@ private struct ContentView: View {
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
-                TextField("手动输入应用标识", text: $newBundleID)
+                TextField("Enter a bundle ID manually", text: $newBundleID)
                     .textFieldStyle(.roundedBorder)
                 HStack {
-                    Button("添加") {
+                    Button("Add") {
                         store.addApp(bundleID: newBundleID)
                         newBundleID = ""
                     }
-                    Button("添加当前应用") {
+                    Button("Add current app") {
                         store.addCurrentApp()
                     }
                 }
-                Button("删除选中应用", role: .destructive) {
+                Button("Delete selected app", role: .destructive) {
                     store.deleteSelectedApp()
                 }
                 .disabled(!isAppSelected)
@@ -1329,22 +1541,22 @@ private struct ContentView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(selectedProfileTitle)
                         .font(.title2.weight(.semibold))
-                    Text("当前前台应用：\(frontmost.name)")
+                    Text("Frontmost app: \(frontmost.name)")
                         .font(.callout)
                         .foregroundStyle(.secondary)
                 }
 
                 Spacer()
 
-                Button(knobService.isRunning ? "停止监听" : "启动监听") {
+                Button(knobService.isRunning ? "Stop listening" : "Start listening") {
                     knobService.toggle(store: store)
                 }
 
-                Button("重新加载") {
+                Button("Reload") {
                     store.reload()
                 }
 
-                Button("保存配置") {
+                Button("Save config") {
                     store.save()
                 }
             }
@@ -1379,94 +1591,131 @@ private struct ContentView: View {
     private var templateBar: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 10) {
-                Text("编辑模式")
+                Text("Edit mode")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.secondary)
+                    .fixedSize()
 
-                Picker("修饰键", selection: $selectedModifierMode) {
+                Picker("Modifier", selection: $selectedModifierMode) {
                     ForEach(ModifierMode.allCases) { mode in
                         Text(mode.title).tag(mode)
                     }
                 }
                 .frame(width: 230)
 
-                Text(selectedModifierMode == .none ? "正在编辑普通手轮动作" : "正在编辑 \(selectedModifierMode.title) + 手轮动作")
+                Text(selectedModifierMode == .none ? "Editing plain knob gestures" : "Editing \(selectedModifierMode.title) + knob gestures")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
 
                 Spacer(minLength: 0)
+
+                toolMenus
             }
 
-            HStack(spacing: 10) {
-                Text("快速模板")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
-
-                Picker("模板", selection: $selectedTemplate) {
-                    ForEach(ActionTemplate.allCases) { template in
-                        Text(template.title).tag(template)
+            // One row when it fits, otherwise the buttons wrap onto a second row.
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 10) {
+                    templatePicker
+                    templateButtons
+                    Spacer(minLength: 0)
+                }
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 10) {
+                        templatePicker
+                        Spacer(minLength: 0)
+                    }
+                    HStack(spacing: 10) {
+                        templateButtons
+                        Spacer(minLength: 0)
                     }
                 }
-                .pickerStyle(.segmented)
-                .frame(maxWidth: 360)
-
-                Button("应用到当前配置") {
-                    store.applyTemplate(selectedTemplate, modifierMode: selectedModifierMode)
-                }
-
-                Button("为当前应用创建并套用") {
-                    store.addCurrentApp(template: selectedTemplate, modifierMode: selectedModifierMode)
-                }
-
-                Menu("监听工具") {
-                    Button("恢复全局音量默认") {
-                        store.restoreGlobalMediaDefault()
-                    }
-
-                    Divider()
-
-                    Button("解除三击锁定") {
-                        knobService.clearMappingLock(showOverlay: true)
-                    }
-                    .disabled(knobService.lockedBundleID == nil)
-
-                    Button("清空计数") {
-                        knobService.resetInputCounters()
-                    }
-
-                    Button("音量自检") {
-                        knobService.testSystemVolume()
-                    }
-
-                    Divider()
-
-                    Button("复制诊断报告") {
-                        knobService.copyDebugReport(store: store, frontmost: frontmost)
-                    }
-                }
-
-                Menu("权限设置") {
-                    Button("请求权限") {
-                        knobService.requestInputMonitoringAccess()
-                    }
-
-                    Button("打开输入监控") {
-                        knobService.openInputMonitoringSettings()
-                    }
-
-                    Button("请求辅助功能") {
-                        knobService.requestAccessibilityAccess()
-                    }
-
-                    Button("打开辅助功能") {
-                        knobService.openAccessibilitySettings()
-                    }
-                }
-
-                Spacer(minLength: 0)
             }
         }
+    }
+
+    @ViewBuilder
+    private var templatePicker: some View {
+        Text("Quick templates")
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(.secondary)
+            .fixedSize()
+
+        Picker("Template", selection: $selectedTemplate) {
+            ForEach(ActionTemplate.allCases) { template in
+                Text(template.title).tag(template)
+            }
+        }
+        .pickerStyle(.segmented)
+        .labelsHidden()
+        .fixedSize()
+        .help(selectedTemplate.subtitle)
+    }
+
+    @ViewBuilder
+    private var templateButtons: some View {
+        Button("Apply to current profile") {
+            store.applyTemplate(selectedTemplate, modifierMode: selectedModifierMode)
+        }
+        .fixedSize()
+
+        Button("Create for frontmost app and apply") {
+            store.addCurrentApp(template: selectedTemplate, modifierMode: selectedModifierMode)
+        }
+        .fixedSize()
+    }
+
+    // Sized to their titles; a Menu otherwise stretches across the whole row.
+    @ViewBuilder
+    private var toolMenus: some View {
+        Menu("Listening tools") {
+            Button("Restore global volume default") {
+                store.restoreGlobalMediaDefault()
+            }
+
+            Divider()
+
+            Toggle("Auto-switch by frontmost app", isOn: $knobService.autoSwitch)
+
+            Button("Release triple-press lock") {
+                knobService.clearMappingLock(showOverlay: true)
+            }
+            .disabled(knobService.autoSwitch || knobService.lockedBundleID == nil)
+
+            Button("Clear counters") {
+                knobService.resetInputCounters()
+            }
+
+            Button("Volume self-test") {
+                knobService.testSystemVolume()
+            }
+
+            Divider()
+
+            Button("Copy diagnostic report") {
+                knobService.copyDebugReport(store: store, frontmost: frontmost)
+            }
+        }
+        .fixedSize()
+
+        Menu("Permissions") {
+            Button("Request permission") {
+                knobService.requestInputMonitoringAccess()
+            }
+
+            Button("Open Input Monitoring") {
+                knobService.openInputMonitoringSettings()
+            }
+
+            Button("Request Accessibility") {
+                knobService.requestAccessibilityAccess()
+            }
+
+            Button("Open Accessibility") {
+                knobService.openAccessibilitySettings()
+            }
+        }
+        .fixedSize()
     }
 
     private var editor: some View {
@@ -1490,7 +1739,7 @@ private struct ContentView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
             Spacer()
-            Text("配置：\(store.configURL.lastPathComponent)")
+            Text("Config: \(store.configURL.lastPathComponent)")
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
                 .help(store.configURL.path)
@@ -1507,7 +1756,7 @@ private struct ContentView: View {
     private var selectedProfileTitle: String {
         switch store.selectedProfile {
         case .global:
-            return "全局默认"
+            return "Global default"
         case .app(let bundleID):
             return appCatalog.app(bundleID: bundleID)?.name ?? store.title(for: store.selectedProfile)
         }
@@ -1525,7 +1774,7 @@ private struct ConfiguredAppRow: View {
                 Text(info?.name ?? fallbackBundleID)
                     .font(.system(size: 12, weight: .medium))
                     .lineLimit(1)
-                Text(info?.isRunning == true ? "自定义映射 · 运行中" : "自定义映射")
+                Text(info?.isRunning == true ? "Custom mapping · running" : "Custom mapping")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -1546,21 +1795,21 @@ private struct DiscoveredAppRow: View {
                         .font(.system(size: 12, weight: .medium))
                         .lineLimit(1)
                     if app.isRunning {
-                        Text("运行中")
+                        Text("Running")
                             .font(.caption2)
                             .padding(.horizontal, 5)
                             .padding(.vertical, 1)
                             .background(.green.opacity(0.18), in: Capsule())
                     }
                     if configured {
-                        Text("已添加")
+                        Text("Added")
                             .font(.caption2)
                             .padding(.horizontal, 5)
                             .padding(.vertical, 1)
                             .background(.blue.opacity(0.16), in: Capsule())
                     }
                 }
-                Text(configured ? "已在左侧应用列表中" : "点击添加到应用列表")
+                Text(configured ? "Already in the app list on the left" : "Click to add to the app list")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
@@ -1587,6 +1836,78 @@ private struct AppIconView: View {
         return NSWorkspace.shared.icon(forFileType: "app")
     }
 }
+
+// Ready-made actions offered by the "Quick pick" menu on every gesture row.
+private struct QuickPick {
+    let title: String
+    let action: ActionConfig
+
+    static func keys(_ title: String, _ keys: String...) -> QuickPick {
+        QuickPick(title: title, action: ActionConfig(
+            type: keys.count == 1 ? "key" : "shortcut", description: title, keys: keys,
+            button: nil, clicks: nil, dx: nil, dy: nil, command: nil
+        ))
+    }
+
+    static func scroll(_ title: String, dx: Int = 0, dy: Int = 0) -> QuickPick {
+        QuickPick(title: title, action: ActionConfig(
+            type: "scroll", description: title, keys: nil,
+            button: nil, clicks: nil, dx: dx, dy: dy, command: nil
+        ))
+    }
+}
+
+private let quickPickGroups: [(title: String, items: [QuickPick])] = [
+    ("Media", [
+        .keys("Volume Up", "volume_up"),
+        .keys("Volume Down", "volume_down"),
+        .keys("Mute", "mute"),
+        .keys("Play / Pause", "play_pause"),
+        .keys("Next Track", "next_track"),
+        .keys("Previous Track", "previous_track"),
+        .keys("Brightness Up", "brightness_up"),
+        .keys("Brightness Down", "brightness_down")
+    ]),
+    ("View", [
+        .keys("Zoom In (⌘=)", "command", "="),
+        .keys("Zoom Out (⌘−)", "command", "-"),
+        .scroll("Scroll Up", dy: 3),
+        .scroll("Scroll Down", dy: -3),
+        .scroll("Scroll Left", dx: -3),
+        .scroll("Scroll Right", dx: 3)
+    ]),
+    ("Navigation", [
+        .keys("Next Tab (⌃⇥)", "control", "tab"),
+        .keys("Previous Tab (⌃⇧⇥)", "control", "shift", "tab"),
+        .keys("Back (⌘[)", "command", "["),
+        .keys("Forward (⌘])", "command", "]"),
+        .keys("Reload (⌘R)", "command", "r")
+    ]),
+    ("Edit", [
+        .keys("Undo (⌘Z)", "command", "z"),
+        .keys("Redo (⇧⌘Z)", "command", "shift", "z"),
+        .keys("Copy (⌘C)", "command", "c"),
+        .keys("Paste (⌘V)", "command", "v"),
+        .keys("Save (⌘S)", "command", "s"),
+        .keys("Find (⌘F)", "command", "f")
+    ]),
+    ("Keys", [
+        .keys("Left Arrow", "left"),
+        .keys("Right Arrow", "right"),
+        .keys("Up Arrow", "up"),
+        .keys("Down Arrow", "down"),
+        .keys("Return", "return"),
+        .keys("Esc", "escape"),
+        .keys("Space", "space")
+    ]),
+    ("Other", [
+        QuickPick(title: "Left Click", action: ActionConfig(
+            type: "mouse", description: "Left Click", keys: nil,
+            button: "left", clicks: 1, dx: nil, dy: nil, command: nil
+        )),
+        QuickPick(title: "No Action", action: .empty())
+    ])
+]
 
 private struct ActionEditorRow: View {
     let input: KnobInput
@@ -1628,16 +1949,29 @@ private struct ActionEditorRow: View {
                 }
                 .frame(width: 150, alignment: .leading)
 
-                Picker("类型", selection: actionType) {
+                Picker("Type", selection: actionType) {
                     ForEach(ActionType.allCases) { type in
                         Text(type.title).tag(type.rawValue)
                     }
                 }
                 .pickerStyle(.segmented)
 
-                TextField("描述", text: optionalString($action.description))
+                TextField("Description", text: optionalString($action.description))
                     .textFieldStyle(.roundedBorder)
-                    .frame(minWidth: 180)
+                    .frame(minWidth: 140)
+
+                Menu("Quick pick") {
+                    ForEach(Array(quickPickGroups.enumerated()), id: \.offset) { _, group in
+                        Section(group.title) {
+                            ForEach(Array(group.items.enumerated()), id: \.offset) { _, item in
+                                Button(item.title) {
+                                    action = item.action
+                                }
+                            }
+                        }
+                    }
+                }
+                .frame(width: 110)
             }
 
             fields
@@ -1659,53 +1993,53 @@ private struct ActionEditorRow: View {
         switch action.type {
         case "shortcut", "key":
             HStack {
-                Text("按键")
+                Text("Key")
                     .frame(width: 96, alignment: .leading)
                     .foregroundStyle(.secondary)
-                TextField("可手动输入，逗号分隔", text: keysText)
+                TextField("Type manually, comma-separated", text: keysText)
                     .textFieldStyle(.roundedBorder)
-                Button("录制组合键") {
+                Button("Record shortcut") {
                     showShortcutRecorder = true
                 }
-                Button("清空") {
+                Button("Clear") {
                     action.keys = []
                 }
             }
         case "mouse":
             HStack {
-                Text("鼠标")
+                Text("Mouse")
                     .frame(width: 96, alignment: .leading)
                     .foregroundStyle(.secondary)
-                Picker("按钮", selection: optionalString($action.button)) {
-                    Text("左键").tag("left")
-                    Text("右键").tag("right")
-                    Text("中键").tag("middle")
+                Picker("Button", selection: optionalString($action.button)) {
+                    Text("Left").tag("left")
+                    Text("Right").tag("right")
+                    Text("Middle").tag("middle")
                 }
                 .frame(width: 160)
-                Stepper("点击 \(action.clicks ?? 1) 次", value: optionalInt($action.clicks, defaultValue: 1), in: 1...5)
+                Stepper("Clicks: \(action.clicks ?? 1)", value: optionalInt($action.clicks, defaultValue: 1), in: 1...5)
             }
         case "scroll":
             HStack {
-                Text("滚动")
+                Text("Scroll")
                     .frame(width: 96, alignment: .leading)
                     .foregroundStyle(.secondary)
-                Stepper("横向 \(action.dx ?? 0)", value: optionalInt($action.dx, defaultValue: 0), in: -20...20)
-                Stepper("纵向 \(action.dy ?? 0)", value: optionalInt($action.dy, defaultValue: 0), in: -20...20)
+                Stepper("Horizontal \(action.dx ?? 0)", value: optionalInt($action.dx, defaultValue: 0), in: -20...20)
+                Stepper("Vertical \(action.dy ?? 0)", value: optionalInt($action.dy, defaultValue: 0), in: -20...20)
             }
         case "shell":
             HStack {
-                Text("命令")
+                Text("Shell")
                     .frame(width: 96, alignment: .leading)
                     .foregroundStyle(.secondary)
-                TextField("输入要执行的命令", text: optionalString($action.command))
+                TextField("Enter the command to run", text: optionalString($action.command))
                     .textFieldStyle(.roundedBorder)
             }
         default:
             HStack {
-                Text("无动作")
+                Text("No action")
                     .frame(width: 96, alignment: .leading)
                     .foregroundStyle(.secondary)
-                Text("这个手势会被忽略。")
+                Text("This gesture is ignored.")
                     .foregroundStyle(.secondary)
             }
         }
@@ -1718,14 +2052,14 @@ private struct ShortcutRecorderSheet: View {
     let modifierMode: ModifierMode
     let onCapture: ([String]) -> Void
     let onCancel: () -> Void
-    @State private var preview = "等待输入"
+    @State private var preview = "Waiting for input"
     @State private var monitor: Any?
 
     var body: some View {
         VStack(spacing: 18) {
-            Text("录制组合键")
+            Text("Record shortcut")
                 .font(.title2.weight(.semibold))
-            Text("为「\(modifierMode.gestureTitle(for: input))」按下你想绑定的组合键")
+            Text("Press the shortcut to bind to '\(modifierMode.gestureTitle(for: input))'")
                 .foregroundStyle(.secondary)
             Text(preview)
                 .font(.system(size: 28, weight: .semibold, design: .rounded))
@@ -1733,11 +2067,11 @@ private struct ShortcutRecorderSheet: View {
                 .padding(.vertical, 18)
                 .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 8))
             HStack {
-                Button("取消") {
+                Button("Cancel") {
                     stop()
                     onCancel()
                 }
-                Button("清空") {
+                Button("Clear") {
                     stop()
                     onCapture([])
                 }
@@ -1820,27 +2154,28 @@ private struct StatusDashboard: View {
         VStack(spacing: 10) {
             HStack(spacing: 10) {
                 DashboardTile(
-                    title: "设备状态",
-                    value: running ? "监听中" : "未监听",
+                    title: "Device status",
+                    value: running ? "Listening" : "Not listening",
                     detail: "\(deviceStatus) · \(inputAccessStatus) · \(accessibilityStatus)",
                     color: running ? .green : .gray
                 )
                 DashboardTile(
-                    title: "当前应用",
+                    title: "Current app",
                     value: frontmostName,
-                    detail: "正在使用：\(effectiveMapping)",
+                    detail: "In use: \(effectiveMapping)",
                     color: .blue
                 )
                 DashboardTile(
-                    title: "三击锁定",
+                    title: "Mapping mode",
                     value: lockMode,
-                    detail: pressSequenceCount > 0 ? "按下计数：\(pressSequenceCount)/3" : "快速按下三次切换当前应用",
+                    detail: lockMode.hasPrefix("Auto") ? "Mappings follow the frontmost app"
+                        : pressSequenceCount > 0 ? "Press count: \(pressSequenceCount)/3" : "Press three times quickly to switch for the current app",
                     color: .purple
                 )
                 DashboardTile(
-                    title: "最近动作",
-                    value: lastEvent == "暂无事件" ? "等待手轮输入" : lastEvent,
-                    detail: "实时执行反馈",
+                    title: "Last action",
+                    value: lastEvent == "No events yet" ? "Waiting for knob input" : lastEvent,
+                    detail: "Live action feedback",
                     color: .orange
                 )
             }
@@ -1870,13 +2205,13 @@ private struct InputMonitorStrip: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
-                Text("输入监视")
+                Text("Input monitor")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.secondary)
-                Text("原始 \(rawEventCount)")
-                Text("识别 \(decodedEventCount)")
-                Text("忽略 \(ignoredEventCount)")
-                Text("最近 \(lastInput.map { lastModifierMode.gestureTitle(for: $0) } ?? "暂无")")
+                Text("Raw \(rawEventCount)")
+                Text("Recognized \(decodedEventCount)")
+                Text("Ignored \(ignoredEventCount)")
+                Text("Last \(lastInput.map { lastModifierMode.gestureTitle(for: $0) } ?? "none")")
                     .foregroundStyle(.secondary)
                 Text(lastRawEvent)
                     .lineLimit(1)
@@ -2213,7 +2548,7 @@ private enum ActionExecutor {
         case "noop":
             return .success()
         default:
-            return .failure("未知动作类型：\(action.type)")
+            return .failure("Unknown action type: \(action.type)")
         }
     }
 
@@ -2232,7 +2567,15 @@ private enum ActionExecutor {
     private static func sendKeys(_ keys: [String]) -> ActionRunResult {
         let normalized = keys.map { $0.lowercased() }
         if normalized.count == 1, SystemAudioController.canHandle(normalized[0]) {
-            return SystemAudioController.handle(normalized[0])
+            let result = SystemAudioController.handle(normalized[0])
+            // Outputs such as DisplayPort / HDMI monitors have no software volume.
+            // Fall back to the real media key so macOS, or a tool like
+            // MonitorControl that drives the monitor over DDC, handles it.
+            if !result.ok, let media = mediaKeyTypes[normalized[0]] {
+                sendMediaKey(media)
+                return .success("System \(displayKeyName(normalized[0])) key (output device has no software volume)")
+            }
+            return result
         }
 
         if normalized.count == 1, let media = mediaKeyTypes[normalized[0]] {
@@ -2251,7 +2594,7 @@ private enum ActionExecutor {
             } else if let media = mediaKeyTypes[key] {
                 sendMediaKey(media)
             } else {
-                return .failure("无法识别按键：\(key)")
+                return .failure("Unrecognized key: \(key)")
             }
         }
 
@@ -2287,6 +2630,7 @@ private enum ActionExecutor {
             data1: data1,
             data2: -1
         )?.cgEvent else { return }
+        event.setIntegerValueField(.eventSourceUserData, value: NativeKeyBlocker.ownEventTag)
         event.post(tap: .cghidEventTap)
     }
 
@@ -2346,6 +2690,7 @@ private let modifierFlags: [String: CGEventFlags] = [
 
 private let mediaKeyTypes: [String: Int] = [
     "volume_up": 0, "volume_down": 1, "mute": 7,
+    "brightness_up": 2, "brightness_down": 3,
     "play_pause": 16, "next_track": 17, "previous_track": 18
 ]
 
@@ -2374,17 +2719,17 @@ private enum SystemAudioController {
         case "mute":
             return toggleMute()
         default:
-            return .failure("无法处理系统音量按键：\(key)")
+            return .failure("Cannot handle system volume key: \(key)")
         }
     }
 
     private static func adjustVolume(by delta: Float32) -> ActionRunResult {
         guard let deviceID = defaultOutputDevice() else {
-            return .failure("找不到默认输出设备")
+            return .failure("Default output device not found")
         }
 
         guard let before = currentVolume(deviceID: deviceID) else {
-            return .failure("无法读取默认输出设备音量（device \(deviceID)）")
+            return .failure("Cannot read default output device volume (device \(deviceID))")
         }
 
         let target = min(max(before.value + delta, 0), 1)
@@ -2392,13 +2737,13 @@ private enum SystemAudioController {
         let after = currentVolume(deviceID: deviceID)
         let beforeText = percent(before.value)
         let targetText = percent(target)
-        let afterText = after.map { percent($0.value) } ?? "未知"
+        let afterText = after.map { percent($0.value) } ?? "Unknown"
         let source = after?.source ?? write.source
-        let detail = "音量 \(beforeText) -> \(afterText)（目标 \(targetText)，\(source)，status \(write.status)）"
+        let detail = "Volume \(beforeText) -> \(afterText) (target \(targetText), \(source), status \(write.status))"
         let overlayValue = Double(after?.value ?? target)
         let overlay = ActionOverlayPayload(
-            title: "音量 \(afterText)",
-            subtitle: delta > 0 ? "提高音量 · \(source)" : "降低音量 · \(source)",
+            title: "Volume \(afterText)",
+            subtitle: delta > 0 ? "Volume up · \(source)" : "Volume down · \(source)",
             systemImage: speakerImage(for: Float32(overlayValue)),
             tint: write.ok ? .accentColor : .red,
             progress: overlayValue,
@@ -2431,7 +2776,7 @@ private enum SystemAudioController {
 
         guard !channelValues.isEmpty else { return nil }
         let average = channelValues.reduce(Float32(0), +) / Float32(channelValues.count)
-        return VolumeSnapshot(value: average, source: "声道音量")
+        return VolumeSnapshot(value: average, source: "Channel volume")
     }
 
     private static func setVolume(deviceID: AudioDeviceID, _ volume: Float32) -> VolumeWrite {
@@ -2472,14 +2817,14 @@ private enum SystemAudioController {
 
         return VolumeWrite(
             ok: successes > 0,
-            source: successes > 0 ? "声道音量" : "无可写音量属性",
+            source: successes > 0 ? "Channel volume" : "No writable volume property",
             status: statuses.first ?? -1
         )
     }
 
     private static func toggleMute() -> ActionRunResult {
         guard let deviceID = defaultOutputDevice() else {
-            return .failure("找不到默认输出设备")
+            return .failure("Default output device not found")
         }
         var address = AudioObjectPropertyAddress(
             mSelector: kAudioDevicePropertyMute,
@@ -2493,10 +2838,10 @@ private enum SystemAudioController {
             let before = currentVolume(deviceID: deviceID)
             let write = setVolume(deviceID: deviceID, 0)
             let after = currentVolume(deviceID: deviceID)
-            let detail = "静音 fallback：音量 \(before.map { percent($0.value) } ?? "未知") -> \(after.map { percent($0.value) } ?? "未知")（status \(write.status)）"
+            let detail = "Mute fallback: volume \(before.map { percent($0.value) } ?? "Unknown") -> \(after.map { percent($0.value) } ?? "Unknown") (status \(write.status))"
             let overlay = ActionOverlayPayload(
-                title: "静音",
-                subtitle: "音量 \(after.map { percent($0.value) } ?? "未知")",
+                title: "Mute",
+                subtitle: "Volume \(after.map { percent($0.value) } ?? "Unknown")",
                 systemImage: "speaker.slash.fill",
                 tint: write.ok ? .accentColor : .red,
                 progress: after.map { Double($0.value) },
@@ -2508,11 +2853,11 @@ private enum SystemAudioController {
 
         var newMuted = muted == 0 ? UInt32(1) : UInt32(0)
         let status = AudioObjectSetPropertyData(deviceID, &address, 0, nil, size, &newMuted)
-        let detail = muted == 0 ? "静音已开启（status \(status)）" : "静音已关闭（status \(status)）"
+        let detail = muted == 0 ? "Mute on (status \(status))" : "Mute off (status \(status))"
         let ok = status == noErr
         let overlay = ActionOverlayPayload(
-            title: muted == 0 ? "静音" : "取消静音",
-            subtitle: "默认输出设备",
+            title: muted == 0 ? "Mute" : "Unmute",
+            subtitle: "Default output device",
             systemImage: muted == 0 ? "speaker.slash.fill" : "speaker.wave.2.fill",
             tint: ok ? .accentColor : .red,
             progress: muted == 0 ? 0 : currentVolume(deviceID: deviceID).map { Double($0.value) },
@@ -2642,43 +2987,43 @@ private func templateActions(_ template: ActionTemplate) -> [String: ActionConfi
     switch template {
     case .browser:
         return [
-            KnobInput.rotateLeft.rawValue: shortcut("上一个标签页", ["control", "shift", "tab"]),
-            KnobInput.rotateRight.rawValue: shortcut("下一个标签页", ["control", "tab"]),
-            KnobInput.press.rawValue: shortcut("刷新页面", ["command", "r"]),
-            KnobInput.pressRotateLeft.rawValue: shortcut("后退", ["command", "["]),
-            KnobInput.pressRotateRight.rawValue: shortcut("前进", ["command", "]"])
+            KnobInput.rotateLeft.rawValue: shortcut("Previous tab", ["control", "shift", "tab"]),
+            KnobInput.rotateRight.rawValue: shortcut("Next tab", ["control", "tab"]),
+            KnobInput.press.rawValue: shortcut("Reload page", ["command", "r"]),
+            KnobInput.pressRotateLeft.rawValue: shortcut("Back", ["command", "["]),
+            KnobInput.pressRotateRight.rawValue: shortcut("Forward", ["command", "]"])
         ]
     case .coding:
         return [
-            KnobInput.rotateLeft.rawValue: shortcut("上一个编辑器", ["command", "shift", "["]),
-            KnobInput.rotateRight.rawValue: shortcut("下一个编辑器", ["command", "shift", "]"]),
-            KnobInput.press.rawValue: shortcut("命令面板", ["command", "shift", "p"]),
-            KnobInput.pressRotateLeft.rawValue: shortcut("上一个问题", ["f8"]),
-            KnobInput.pressRotateRight.rawValue: shortcut("下一个问题", ["shift", "f8"])
+            KnobInput.rotateLeft.rawValue: shortcut("Previous editor", ["command", "shift", "["]),
+            KnobInput.rotateRight.rawValue: shortcut("Next editor", ["command", "shift", "]"]),
+            KnobInput.press.rawValue: shortcut("Command palette", ["command", "shift", "p"]),
+            KnobInput.pressRotateLeft.rawValue: shortcut("Previous problem", ["f8"]),
+            KnobInput.pressRotateRight.rawValue: shortcut("Next problem", ["shift", "f8"])
         ]
     case .media:
         return [
-            KnobInput.rotateLeft.rawValue: ActionConfig(type: "key", description: "降低音量", keys: ["volume_down"], button: nil, clicks: nil, dx: nil, dy: nil, command: nil),
-            KnobInput.rotateRight.rawValue: ActionConfig(type: "key", description: "提高音量", keys: ["volume_up"], button: nil, clicks: nil, dx: nil, dy: nil, command: nil),
-            KnobInput.press.rawValue: ActionConfig(type: "key", description: "播放 / 暂停", keys: ["play_pause"], button: nil, clicks: nil, dx: nil, dy: nil, command: nil),
-            KnobInput.pressRotateLeft.rawValue: shortcut("上一首", ["previous_track"]),
-            KnobInput.pressRotateRight.rawValue: shortcut("下一首", ["next_track"])
+            KnobInput.rotateLeft.rawValue: ActionConfig(type: "key", description: "Volume Down", keys: ["volume_down"], button: nil, clicks: nil, dx: nil, dy: nil, command: nil),
+            KnobInput.rotateRight.rawValue: ActionConfig(type: "key", description: "Volume Up", keys: ["volume_up"], button: nil, clicks: nil, dx: nil, dy: nil, command: nil),
+            KnobInput.press.rawValue: ActionConfig(type: "key", description: "Play / Pause", keys: ["play_pause"], button: nil, clicks: nil, dx: nil, dy: nil, command: nil),
+            KnobInput.pressRotateLeft.rawValue: shortcut("Previous Track", ["previous_track"]),
+            KnobInput.pressRotateRight.rawValue: shortcut("Next Track", ["next_track"])
         ]
     case .design:
         return [
-            KnobInput.rotateLeft.rawValue: shortcut("缩小画笔", ["["]),
-            KnobInput.rotateRight.rawValue: shortcut("放大画笔", ["]"]),
-            KnobInput.press.rawValue: shortcut("画笔工具", ["b"]),
-            KnobInput.pressRotateLeft.rawValue: shortcut("降低硬度", ["shift", "["]),
-            KnobInput.pressRotateRight.rawValue: shortcut("提高硬度", ["shift", "]"])
+            KnobInput.rotateLeft.rawValue: shortcut("Smaller brush", ["["]),
+            KnobInput.rotateRight.rawValue: shortcut("Larger brush", ["]"]),
+            KnobInput.press.rawValue: shortcut("Brush tool", ["b"]),
+            KnobInput.pressRotateLeft.rawValue: shortcut("Lower hardness", ["shift", "["]),
+            KnobInput.pressRotateRight.rawValue: shortcut("Higher hardness", ["shift", "]"])
         ]
     case .editing:
         return [
-            KnobInput.rotateLeft.rawValue: shortcut("前一帧", ["left"]),
-            KnobInput.rotateRight.rawValue: shortcut("后一帧", ["right"]),
-            KnobInput.press.rawValue: shortcut("播放 / 暂停", ["space"]),
-            KnobInput.pressRotateLeft.rawValue: shortcut("向前大步移动", ["shift", "left"]),
-            KnobInput.pressRotateRight.rawValue: shortcut("向后大步移动", ["shift", "right"])
+            KnobInput.rotateLeft.rawValue: shortcut("Previous frame", ["left"]),
+            KnobInput.rotateRight.rawValue: shortcut("Next frame", ["right"]),
+            KnobInput.press.rawValue: shortcut("Play / Pause", ["space"]),
+            KnobInput.pressRotateLeft.rawValue: shortcut("Big step back", ["shift", "left"]),
+            KnobInput.pressRotateRight.rawValue: shortcut("Big step forward", ["shift", "right"])
         ]
     }
 }
@@ -2724,7 +3069,7 @@ private func diagnosticHIDDevices() -> [String] {
 
     guard openResult == kIOReturnSuccess,
           let devices = IOHIDManagerCopyDevices(manager) as? Set<IOHIDDevice> else {
-        return ["HID 枚举失败：0x\(hex(UInt32(bitPattern: openResult), width: 8))"]
+        return ["HID enumeration failed: 0x\(hex(UInt32(bitPattern: openResult), width: 8))"]
     }
 
     return devices.compactMap { device in
@@ -2792,17 +3137,17 @@ private func actionSummary(_ action: ActionConfig) -> String {
     switch action.type {
     case "shortcut", "key":
         let keys = action.keys ?? []
-        return keys.isEmpty ? "未设置按键" : displayKeyList(keys)
+        return keys.isEmpty ? "No key set" : displayKeyList(keys)
     case "mouse":
-        return "鼠标\(displayMouseButton(action.button ?? "left")) · \(action.clicks ?? 1) 次"
+        return "Mouse \(displayMouseButton(action.button ?? "left")) · clicks: \(action.clicks ?? 1)"
     case "scroll":
-        return "横向 \(action.dx ?? 0)，纵向 \(action.dy ?? 0)"
+        return "Horizontal \(action.dx ?? 0), vertical \(action.dy ?? 0)"
     case "shell":
-        return action.command?.isEmpty == false ? "执行命令" : "未设置命令"
+        return action.command?.isEmpty == false ? "Run command" : "No command set"
     case "noop":
-        return "忽略这个手势"
+        return "Ignore this gesture"
     default:
-        return "未识别动作"
+        return "Unrecognized action"
     }
 }
 
@@ -2828,9 +3173,9 @@ private func overlaySystemImage(for input: KnobInput) -> String {
 
 private func displayMouseButton(_ value: String) -> String {
     switch value.lowercased() {
-    case "right": return "右键"
-    case "middle", "center": return "中键"
-    default: return "左键"
+    case "right": return "Right"
+    case "middle", "center": return "Middle"
+    default: return "Left"
     }
 }
 
@@ -2849,19 +3194,21 @@ private func displayKeyName(_ token: String) -> String {
     case "option", "opt", "alt": return "⌥"
     case "shift": return "⇧"
     case "fn": return "fn"
-    case "volume_down": return "降低音量"
-    case "volume_up": return "提高音量"
-    case "play_pause": return "播放/暂停"
-    case "previous_track": return "上一首"
-    case "next_track": return "下一首"
-    case "mute": return "静音"
-    case "return": return "回车"
-    case "escape", "esc": return "退出"
-    case "left": return "左方向"
-    case "right": return "右方向"
-    case "up": return "上方向"
-    case "down": return "下方向"
-    case "space": return "空格"
+    case "volume_down": return "Volume Down"
+    case "volume_up": return "Volume Up"
+    case "brightness_down": return "Brightness Down"
+    case "brightness_up": return "Brightness Up"
+    case "play_pause": return "Play/Pause"
+    case "previous_track": return "Previous Track"
+    case "next_track": return "Next Track"
+    case "mute": return "Mute"
+    case "return": return "Return"
+    case "escape", "esc": return "Esc"
+    case "left": return "Left"
+    case "right": return "Right"
+    case "up": return "Up"
+    case "down": return "Down"
+    case "space": return "Space"
     default:
         return token.count == 1 ? token.uppercased() : token
     }
@@ -2890,6 +3237,13 @@ private func tokenFromDisplayName(_ value: String) -> String? {
     case "上方向", "up": return "up"
     case "下方向", "down": return "down"
     case "空格", "space": return "space"
+    case "volume down": return "volume_down"
+    case "volume up": return "volume_up"
+    case "brightness down": return "brightness_down"
+    case "brightness up": return "brightness_up"
+    case "play/pause": return "play_pause"
+    case "previous track": return "previous_track"
+    case "next track": return "next_track"
     default:
         return trimmed.lowercased()
     }

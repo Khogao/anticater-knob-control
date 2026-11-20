@@ -2,27 +2,27 @@
   "global": {
     "rotate_left": {
       "type": "key",
-      "description": "降低音量",
+      "description": "Volume down",
       "keys": ["volume_down"]
     },
     "rotate_right": {
       "type": "key",
-      "description": "提高音量",
+      "description": "Volume up",
       "keys": ["volume_up"]
     },
     "press": {
       "type": "key",
-      "description": "播放 / 暂停",
+      "description": "Play / Pause",
       "keys": ["play_pause"]
     },
     "press_rotate_left": {
       "type": "shortcut",
-      "description": "上一个媒体项目",
+      "description": "Previous media item",
       "keys": ["previous_track"]
     },
     "press_rotate_right": {
       "type": "shortcut",
-      "description": "下一个媒体项目",
+      "description": "Next media item",
       "keys": ["next_track"]
     }
   },
@@ -30,189 +30,189 @@
     "com.apple.Terminal": {
       "rotate_left": {
         "type": "shortcut",
-        "description": "上一条命令历史",
+        "description": "Previous command in history",
         "keys": ["up"]
       },
       "rotate_right": {
         "type": "shortcut",
-        "description": "下一条命令历史",
+        "description": "Next command in history",
         "keys": ["down"]
       },
       "press": {
         "type": "shortcut",
-        "description": "回车",
+        "description": "Return",
         "keys": ["return"]
       },
       "press_rotate_left": {
         "type": "shortcut",
-        "description": "移动到行首",
+        "description": "Move to line start",
         "keys": ["control", "a"]
       },
       "press_rotate_right": {
         "type": "shortcut",
-        "description": "移动到行尾",
+        "description": "Move to line end",
         "keys": ["control", "e"]
       }
     },
     "com.google.Chrome": {
       "rotate_left": {
         "type": "shortcut",
-        "description": "上一个标签页",
+        "description": "Previous tab",
         "keys": ["control", "shift", "tab"]
       },
       "rotate_right": {
         "type": "shortcut",
-        "description": "下一个标签页",
+        "description": "Next tab",
         "keys": ["control", "tab"]
       },
       "press": {
         "type": "shortcut",
-        "description": "刷新页面",
+        "description": "Reload page",
         "keys": ["command", "r"]
       },
       "press_rotate_left": {
         "type": "shortcut",
-        "description": "历史后退",
+        "description": "Back",
         "keys": ["command", "["]
       },
       "press_rotate_right": {
         "type": "shortcut",
-        "description": "历史前进",
+        "description": "Forward",
         "keys": ["command", "]"]
       }
     },
     "company.thebrowser.Browser": {
       "rotate_left": {
         "type": "shortcut",
-        "description": "上一个标签页",
+        "description": "Previous tab",
         "keys": ["control", "shift", "tab"]
       },
       "rotate_right": {
         "type": "shortcut",
-        "description": "下一个标签页",
+        "description": "Next tab",
         "keys": ["control", "tab"]
       },
       "press": {
         "type": "shortcut",
-        "description": "刷新页面",
+        "description": "Reload page",
         "keys": ["command", "r"]
       },
       "press_rotate_left": {
         "type": "shortcut",
-        "description": "历史后退",
+        "description": "Back",
         "keys": ["command", "["]
       },
       "press_rotate_right": {
         "type": "shortcut",
-        "description": "历史前进",
+        "description": "Forward",
         "keys": ["command", "]"]
       }
     },
     "com.microsoft.VSCode": {
       "rotate_left": {
         "type": "shortcut",
-        "description": "上一个编辑器",
+        "description": "Previous editor",
         "keys": ["command", "shift", "["]
       },
       "rotate_right": {
         "type": "shortcut",
-        "description": "下一个编辑器",
+        "description": "Next editor",
         "keys": ["command", "shift", "]"]
       },
       "press": {
         "type": "shortcut",
-        "description": "打开命令面板",
+        "description": "Open command palette",
         "keys": ["command", "shift", "p"]
       },
       "press_rotate_left": {
         "type": "shortcut",
-        "description": "上一个问题",
+        "description": "Previous problem",
         "keys": ["f8"]
       },
       "press_rotate_right": {
         "type": "shortcut",
-        "description": "下一个问题",
+        "description": "Next problem",
         "keys": ["shift", "f8"]
       }
     },
     "com.todesktop.230313mzl4w4u92": {
       "rotate_left": {
         "type": "shortcut",
-        "description": "上一个编辑器",
+        "description": "Previous editor",
         "keys": ["command", "shift", "["]
       },
       "rotate_right": {
         "type": "shortcut",
-        "description": "下一个编辑器",
+        "description": "Next editor",
         "keys": ["command", "shift", "]"]
       },
       "press": {
         "type": "shortcut",
-        "description": "打开命令面板",
+        "description": "Open command palette",
         "keys": ["command", "shift", "p"]
       },
       "press_rotate_left": {
         "type": "shortcut",
-        "description": "上一个问题",
+        "description": "Previous problem",
         "keys": ["f8"]
       },
       "press_rotate_right": {
         "type": "shortcut",
-        "description": "下一个问题",
+        "description": "Next problem",
         "keys": ["shift", "f8"]
       }
     },
     "com.adobe.Photoshop": {
       "rotate_left": {
         "type": "shortcut",
-        "description": "缩小笔刷",
+        "description": "Smaller brush",
         "keys": ["["]
       },
       "rotate_right": {
         "type": "shortcut",
-        "description": "放大笔刷",
+        "description": "Larger brush",
         "keys": ["]"]
       },
       "press": {
         "type": "shortcut",
-        "description": "切换画笔工具",
+        "description": "Switch to brush tool",
         "keys": ["b"]
       },
       "press_rotate_left": {
         "type": "shortcut",
-        "description": "降低画笔硬度",
+        "description": "Lower brush hardness",
         "keys": ["shift", "["]
       },
       "press_rotate_right": {
         "type": "shortcut",
-        "description": "提高画笔硬度",
+        "description": "Higher brush hardness",
         "keys": ["shift", "]"]
       }
     },
     "com.blackmagic-design.DaVinciResolve": {
       "rotate_left": {
         "type": "shortcut",
-        "description": "时间线向前一步",
+        "description": "Timeline step back",
         "keys": ["left"]
       },
       "rotate_right": {
         "type": "shortcut",
-        "description": "时间线向后一步",
+        "description": "Timeline step forward",
         "keys": ["right"]
       },
       "press": {
         "type": "shortcut",
-        "description": "播放 / 暂停",
+        "description": "Play / Pause",
         "keys": ["space"]
       },
       "press_rotate_left": {
         "type": "shortcut",
-        "description": "时间线向前大步移动",
+        "description": "Timeline big step back",
         "keys": ["shift", "left"]
       },
       "press_rotate_right": {
         "type": "shortcut",
-        "description": "时间线向后大步移动",
+        "description": "Timeline big step forward",
         "keys": ["shift", "right"]
       }
     }

@@ -93,3 +93,27 @@ libhidapi.0.12.0.dylib
 0x006f -> press_rotate_left
 0x0070 -> press_rotate_right
 ```
+
+## Keyboard-class hardware revision (added in the Knob Console fork)
+
+A second VK-01 revision behaves differently from the unit described above:
+
+```text
+USB / 2.4G dongle: product "USB Composite Device", manufacturer "Jieli Technology"
+Bluetooth LE:      product "ANTICATER", manufacturer "zhuhai_jieli"
+VendorID 0x05ac, ProductID 0x022c on all three transports
+UsagePage 1, Usage 6 (Generic Desktop / Keyboard)
+```
+
+- `IOHIDManagerOpen` with `kIOHIDOptionsTypeSeizeDevice` fails with `0xe00002c1`
+  (`kIOReturnNotPrivileged`): macOS only lets root seize keyboard-class devices.
+- Calling `IOHIDManagerOpen` again on the same manager without the seize returns success
+  but delivers no input values. A fresh manager opened without a seize does.
+- Consumer-control values seen without a seize (page `0x000c`):
+  `0x00e9` / `0x00ea` rotate, `0x006f` / `0x0070` hold + rotate, each followed by a
+  release, plus an array element (`usage=0xffffffff`) carrying the same usage as its value.
+- Because the device is not seized, macOS still acts on these keys; the fork drops the
+  resulting system-defined key events with a session event tap.
+- Those events are `NX_SYSDEFINED` subtype 8 with key type 0 / 1 (volume), 7 (mute) and
+  2 / 3 (brightness). `CGEvent.timestamp` equals the HID report's
+  `IOHIDValueGetTimeStamp` converted to nanoseconds, so the two can be matched exactly.

@@ -1,260 +1,163 @@
-# 手轮控制台
+# Knob Console
 
-把 `ANTICATER_MINI` 蓝牙手轮变成 macOS 上的应用快捷控制器。
+Turns an Anticater VK-01 knob into a per-app shortcut controller on macOS: volume
+everywhere, tab switching in the browser, brush size in Photoshop, and so on.
 
-你可以为不同 App 配置不同动作。例如：
+This is a fork of [dreamug/anticater-knob-control](https://github.com/dreamug/anticater-knob-control).
+The original Chinese README is kept as [README.zh-CN.md](README.zh-CN.md); it describes
+upstream behaviour, not this fork.
 
-- 浏览器里旋转切换标签页
-- Cursor / VS Code 里旋转切换编辑器
-- Photoshop 里旋转调整画笔
-- DaVinci Resolve 里旋转移动时间线
-- 全局默认状态下控制音量、媒体播放
+## What this fork changes
 
-支持 5 个手轮动作：
+- **English UI.** Every string in the window, menu bar menu, overlays and diagnostic
+  report is translated. Chinese key names in existing config files are still accepted.
+- **Automatic per-app switching.** An app's mapping applies as soon as that app is
+  frontmost. Upstream needs a triple press to lock onto one app. The old behaviour is
+  still available: turn off *Auto-switch by frontmost app* in *Listening tools* or the
+  menu bar menu.
+- **Works with knobs that enumerate as a keyboard.** See below.
+- **Show console reopens the window.** Upstream only activated the app, so a closed
+  window could not be brought back.
 
-```text
-左旋
-右旋
-按下
-按住左旋
-按住右旋
-```
+## Windows
 
-## 系统要求
+[`windows/`](windows/) holds a separate Windows app with the same idea, written in Go:
+tray icon, settings window, per-app mappings chosen by the foreground window. It shares
+no code with the macOS app. Its settings window is a web page embedded in the exe
+([`ui/`](ui/)), laid out like the macOS app and meant to be reused by a Linux app. It compiles but has not been run on Windows yet; its
+[README](windows/README.md) (Vietnamese) has the build steps, a first-run checklist and
+the list of unverified points.
 
-- macOS
-- ANTICATER_MINI 手轮
-- Xcode Command Line Tools
+## Linux
 
-如果没有安装 Xcode Command Line Tools，可以运行：
+[`linux/`](linux/) has an [xremap](https://github.com/xremap/xremap) config, an install
+script and a guide (Vietnamese) for Fedora KDE on Wayland. No custom app is needed there:
+xremap grabs the knob and remaps per application. Not yet run on Linux.
 
-```bash
-xcode-select --install
-```
+## Knobs that enumerate as a keyboard
 
-## 下载和运行
+Upstream was written for a VK-01 whose Bluetooth interface reports itself as a mouse,
+which a normal app can open exclusively. The unit this fork was tested with reports
+`usagePage=0x0001 usage=0x0006` (keyboard) over USB, the 2.4G dongle and Bluetooth
+alike, and macOS only lets root seize keyboard-class devices: the seize fails with
+`0xe00002c1`.
 
-克隆仓库：
+So when the seize fails, this fork:
 
-```bash
-git clone https://github.com/dreamug/anticater-knob-control.git
-cd anticater-knob-control
-```
+1. Opens the knob again with a fresh HID manager, without a seize. Reusing the manager
+   whose seize failed delivered no input at all.
+2. Installs a session event tap that drops the volume, mute and brightness keys macOS
+   generates for the knob. A key is the knob's when one of the knob's HID reports
+   carries the same timestamp; on the tested unit the two match to the millisecond.
+   Only the mapped action runs.
 
-启动图形界面：
+The tap and a second, listen-only HID manager run on their own thread and compare the
+events' own timestamps. Comparing arrival times on the main thread did not work: while
+actions run, the main thread lags by hundreds of milliseconds and the knob's keys were
+let through.
+
+Volume keys on a real keyboard still work; they are held for about 50 ms while the app
+checks whether the knob produced them.
+
+**Tested** with a VK-01 (`05AC:022C`, Bluetooth LE, macOS 15, MonitorControl running):
+the app receives the knob's input, runs the frontmost app's mapping, and hold + rotate
+no longer changes the display brightness. **Not separately confirmed:** that a remapped
+plain rotation leaves the system volume untouched; it goes through the same code path.
+
+## Requirements
+
+- macOS 14 or later
+- Xcode Command Line Tools (`xcode-select --install`)
+- An Anticater VK-01 with vendor/product ID `05AC:022C`
+
+## Build and run
 
 ```bash
 ./run-gui.sh
 ```
 
-这个命令会自动构建并打开 `手轮控制台.app`。
-
-也可以手动构建：
+or
 
 ```bash
 ./build-gui.sh
 open build/ANTICATERKnobControl.app
 ```
 
-构建后的 App 在：
-
-```text
-build/ANTICATERKnobControl.app
-```
-
-真正的可执行文件在：
-
-```text
-build/ANTICATERKnobControl.app/Contents/MacOS/ANTICATERKnobControl
-```
-
-授权输入监控时，请优先选择整个 `build/ANTICATERKnobControl.app`。
-
-构建脚本会优先使用本机的 `Apple Development` 证书签名；如果没有可用证书，会退回 ad-hoc 签名。也可以手动指定签名身份：
+To give the app an icon, put an `.icns` file at `assets/AppIcon.icns` before building.
+`assets/make-icons.swift` generates it, and the Windows `.ico`, from a vector file at
+`assets/logo.svg`; pass a colour to recolour the mark:
 
 ```bash
-ANTICATER_CODE_SIGN_IDENTITY="Apple Development: your@email.com (TEAMID)" ./build-gui.sh
+swift assets/make-icons.swift assets/logo.svg FF9124
 ```
 
-## 第一次使用
+The logo and the generated icons are ignored by git; no icon ships with this repository.
 
-1. 打开 `手轮控制台`
-2. 点击右上角「启动监听」
-3. 如果 macOS 弹出权限提示，请允许
-4. 如果没有弹窗，请手动打开权限
+## Permissions
 
-需要开启：
+The app needs two permissions in System Settings → Privacy & Security:
 
-```text
-系统设置 -> 隐私与安全性 -> 辅助功能
-系统设置 -> 隐私与安全性 -> 输入监控
-```
+- **Input Monitoring** to read the knob.
+- **Accessibility** to send shortcuts, scroll, and block the knob's native keys.
 
-把 `手轮控制台` 加进去后，重新打开 App 或再次点击「启动监听」。
+Click *Start listening*, allow Input Monitoring, use *Permissions → Request
+Accessibility*, then quit and reopen the app.
 
-其中「输入监控」负责让 App 读取手轮事件；「辅助功能」负责让 App 发出快捷键、媒体键、鼠标和滚动动作。如果 dashboard 能看到手轮输入，但动作没有生效，请优先检查「辅助功能」是否已允许。
-
-## 配置应用动作
-
-左侧会显示：
-
-- 全局默认
-- 已配置应用
-- 发现的应用
-
-使用方式：
-
-1. 在「发现的应用」里搜索你要配置的 App
-2. 点击应用，把它加入配置列表
-3. 在右侧查看当前 App、设备状态和最近动作
-4. 为 5 个手轮动作设置行为
-5. 点击「保存配置」
-
-如果想快速开始，可以在右侧的「快速模板」里选择：
-
-```text
-浏览器
-写代码
-媒体
-设计
-剪辑
-```
-
-然后点击「应用到当前配置」。如果你正在使用某个 App，也可以点击「为当前应用创建并套用」，自动给当前激活的 App 建立配置。
-
-## 三击锁定应用映射
-
-应用不会在你切换窗口时立刻切换映射。默认情况下，所有 App 都使用「全局默认」。
-
-如果想启用某个 App 的专属映射：
-
-1. 切到那个 App
-2. 连续按下手轮三次。相邻两次按下间隔不要超过约 1.2 秒
-3. 右侧「三击锁定」会显示已锁定的 App
-
-锁定后，只有这个 App 在前台时才使用它自己的映射。切到其他 App 时，仍然使用「全局默认」。
-
-如果想恢复到所有 App 都使用「全局默认」，在已锁定的 App 里再次快速按下手轮三次，或者点击界面里的「解除三击锁定」。
-
-## 输入监视
-
-右侧 dashboard 会显示「输入监视」：
-
-```text
-原始：收到的 HID 原始事件数量
-识别：成功识别成手轮动作的数量
-忽略：收到但没有作为动作执行的事件数量
-左旋 / 右旋 / 按下 / 按住左旋 / 按住右旋：每个动作的计数
-```
-
-如果旋转或按下手轮时「原始」不增加，请先检查是否已经点击「启动监听」，以及是否有其他手轮工具正在占用设备。
-
-如果「启动监听」显示 `0xe00002e2` 之类的失败码，通常是 macOS 没有把输入监控权限真正给到图形界面。请到：
-
-```text
-系统设置 -> 隐私与安全性 -> 输入监控
-```
-
-删除旧的「手轮控制台」，重新添加当前仓库里的：
-
-```text
-build/ANTICATERKnobControl.app
-```
-
-然后完全退出并重新打开 App。
-
-也可以在 App 右侧点击「请求权限」或「打开输入监控」。
-
-如果动作显示 `需要辅助功能权限 / failed`，请点击「请求辅助功能」或「打开辅助功能」，然后允许 `手轮控制台`。
-
-如果「原始」增加但「识别」不增加，可以把界面里显示的最后一条 HID 原始事件发到 issue 里。
-
-动作类型：
-
-```text
-快捷键：发送组合键，例如 ⌘ + ⇧ + P
-按键：发送单个按键或媒体键
-鼠标：点击当前鼠标位置
-滚动：发送滚轮滚动
-命令：执行 shell 命令
-无动作：忽略这个手势
-```
-
-配置会保存到：
-
-```text
-config/app-mapping.json
-```
-
-仓库里提供了示例配置：
-
-```text
-config/app-mapping.example.json
-```
-
-## 录制组合键
-
-在某个动作旁边点击「录制组合键」，然后直接按下你想绑定的快捷键。
-
-例如：
-
-```text
-Command + Shift + P
-Control + Tab
-Command + [
-```
-
-界面会自动填入对应组合键。
-
-## 菜单栏使用
-
-启动图形界面后，菜单栏会出现一个手轮图标。你可以在菜单里快速：
-
-```text
-启动监听
-停止监听
-打开主窗口
-退出应用
-```
-
-## 常见问题
-
-### 点击「启动监听」后没有反应
-
-请检查权限：
-
-```text
-系统设置 -> 隐私与安全性 -> 辅助功能
-系统设置 -> 隐私与安全性 -> 输入监控
-```
-
-开启后重新启动 App。
-
-### 手轮动作仍然改变系统音量或亮度
-
-如果没有成功独占设备，macOS 可能仍会收到原本的媒体键事件。请确认：
-
-- 没有同时打开官方 ANTICATER 配置软件
-- 已给 `手轮控制台` 输入监控权限
-- 重新点击「启动监听」
-
-### 找不到某个 App
-
-点击「刷新发现」，或手动输入该 App 的 bundle id 后点击「添加」。
-
-## 开发者工具
-
-仓库里还保留了一些诊断脚本：
+The build is ad-hoc signed unless you have an Apple Development certificate, so every
+rebuild is a new app as far as macOS is concerned. The switches in System Settings
+still look enabled but belong to the old build. After a rebuild, clear them and grant
+again:
 
 ```bash
-./run-hid-probe.sh
-./run-input-probe.sh
-./run-knob-monitor.sh
-./run-knob-mapper.sh
+tccutil reset ListenEvent cc.codex.anticater-knob-control
+tccutil reset Accessibility cc.codex.anticater-knob-control
 ```
 
-普通用户只需要使用：
+## Using it
 
-```bash
-./run-gui.sh
-```
+- The sidebar lists *Global default* and each configured app. *Discovered apps* lets
+  you add more; *Add current app* adds whatever is frontmost.
+- Each profile maps five gestures: rotate left, rotate right, press, hold + rotate
+  left, hold + rotate right.
+- Action types: shortcut, key (including media keys), mouse click, scroll, shell
+  command, no action.
+- Media key names: `volume_up`, `volume_down`, `mute`, `brightness_up`,
+  `brightness_down`, `play_pause`, `next_track`, `previous_track`.
+- Volume is set through Core Audio. When the output device has no software volume
+  (a DisplayPort or HDMI monitor), the app sends the real volume key instead, so macOS
+  or a tool such as MonitorControl handles it.
+- Because the knob's own keys are blocked, hold + rotate only changes the brightness
+  if a profile maps it to `brightness_up` / `brightness_down`.
+- *Quick pick* on each gesture row assigns a common action in one click: media and
+  brightness keys, zoom, scrolling, tabs, undo / redo, copy / paste, arrow keys.
+- *Quick templates* fill a profile for browsers, code editors, media, design and video
+  timelines.
+- *Save config* writes `~/Library/Application Support/ANTICATER Knob Control/app-mapping.json`.
+- Quit the vendor's ANTICATER app while using this one.
+
+## Diagnostics
+
+*Listening tools → Copy diagnostic report* copies the permission state, the result of
+the seize attempt, event counters and the most recent raw HID events. If *Raw events*
+stays at 0 while you turn the knob, the app is not receiving input.
+
+## Known issues
+
+- After the app sends a shortcut with modifiers (for example Ctrl+Shift+Tab), the next
+  gesture can be read as if those modifiers were held. Mappings that do not use the
+  *Modifier* edit mode are unaffected.
+- There is no debounce for rotation.
+
+## Credits
+
+The original macOS app (HID capture, gesture recognition, per-app mappings, the
+diagnostic report) was written by Ian in
+[dreamug/anticater-knob-control](https://github.com/dreamug/anticater-knob-control).
+Every commit up to `1561720` (*Add built-in diagnostic report*) is his and is kept
+unchanged in this history. The English UI, auto-switching, the Windows and Linux apps,
+the web settings page and DDC/CI brightness were added on top in this fork.
+
+## License
+
+Upstream does not include a license file. This fork adds none; treat the code
+accordingly.

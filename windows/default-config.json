@@ -1,0 +1,57 @@
+{
+  "_help": [
+    "Gestures: rotate_left, rotate_right, press, press_rotate_left, press_rotate_right.",
+    "Action types: passthrough (Windows handles it: volume / mute), shortcut, scroll, mouse, shell, noop.",
+    "shortcut keys: ctrl shift alt win + a letter/digit/f1..f24/left/right/up/down/enter/esc/space/tab/[ ] - = , . / and media names",
+    "  (volume_up volume_down mute play_pause next_track previous_track). 'command'/'cmd' is treated as ctrl.",
+    "  brightness_up / brightness_down change the brightness of external monitors by 5% (needs DDC/CI on in the monitor menu).",
+    "scroll: dy > 0 scrolls up, dx > 0 scrolls right; optional keys are held while scrolling (ctrl = zoom).",
+    "every: act only on every Nth tick; use 2 if one detent of your knob fires an action twice.",
+    "apps: key is the exe name, or 'exe|text' to match only when the window title contains text.",
+    "An app entry only needs the gestures it changes; the rest fall back to global.",
+    "language: \"vi\" or \"en\"; leave it out to follow the Windows display language."
+  ],
+  "devices": ["05AC:022C", "514C:8850", "514C:4155"],
+  "log": true,
+  "global": {
+    "rotate_left":        { "type": "passthrough", "description": "Volume down" },
+    "rotate_right":       { "type": "passthrough", "description": "Volume up" },
+    "press":              { "type": "passthrough", "description": "Mute" },
+    "press_rotate_left":  { "type": "scroll", "dy": 1, "description": "Scroll up" },
+    "press_rotate_right": { "type": "scroll", "dy": -1, "description": "Scroll down" }
+  },
+  "apps": {
+    "WINWORD.EXE": {
+      "rotate_left":  { "type": "scroll", "dy": -1, "keys": ["ctrl"], "description": "Zoom out" },
+      "rotate_right": { "type": "scroll", "dy": 1, "keys": ["ctrl"], "description": "Zoom in" }
+    },
+    "EXCEL.EXE": {
+      "rotate_left":  { "type": "scroll", "dy": -1, "keys": ["ctrl"], "description": "Zoom out" },
+      "rotate_right": { "type": "scroll", "dy": 1, "keys": ["ctrl"], "description": "Zoom in" }
+    },
+    "POWERPNT.EXE": {
+      "rotate_left":  { "type": "scroll", "dy": -1, "keys": ["ctrl"], "description": "Zoom out" },
+      "rotate_right": { "type": "scroll", "dy": 1, "keys": ["ctrl"], "description": "Zoom in" }
+    },
+    "chrome.exe|YouTube": {
+      "press_rotate_left":  { "type": "shortcut", "keys": ["left"], "description": "Back 5 s" },
+      "press_rotate_right": { "type": "shortcut", "keys": ["right"], "description": "Forward 5 s" }
+    },
+    "msedge.exe|YouTube": {
+      "press_rotate_left":  { "type": "shortcut", "keys": ["left"], "description": "Back 5 s" },
+      "press_rotate_right": { "type": "shortcut", "keys": ["right"], "description": "Forward 5 s" }
+    },
+    "chrome.exe": {
+      "press_rotate_left":  { "type": "shortcut", "keys": ["ctrl", "shift", "tab"], "description": "Previous tab" },
+      "press_rotate_right": { "type": "shortcut", "keys": ["ctrl", "tab"], "description": "Next tab" }
+    },
+    "msedge.exe": {
+      "press_rotate_left":  { "type": "shortcut", "keys": ["ctrl", "shift", "tab"], "description": "Previous tab" },
+      "press_rotate_right": { "type": "shortcut", "keys": ["ctrl", "tab"], "description": "Next tab" }
+    },
+    "Photoshop.exe": {
+      "rotate_left":  { "type": "shortcut", "keys": ["["], "description": "Smaller brush" },
+      "rotate_right": { "type": "shortcut", "keys": ["]"], "description": "Larger brush" }
+    }
+  }
+}
