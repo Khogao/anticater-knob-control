@@ -106,12 +106,16 @@ func (l *LEDConfig) colour(exe, title string) string {
 	case best != "":
 		c = l.Apps[best]
 	case l.Auto:
-		c = autoColour(lexe)
+		hex, factor := autoColour(lexe)
+		return l.lineAt(hex, factor)
 	}
 	return l.line(c)
 }
 
-func (l *LEDConfig) line(c string) string {
+func (l *LEDConfig) line(c string) string { return l.lineAt(c, 1) }
+
+// lineAt is the line for knob-led.ps1, with the brightness scaled by factor.
+func (l *LEDConfig) lineAt(c string, factor float64) string {
 	c = strings.ToUpper(strings.TrimPrefix(strings.TrimSpace(c), "#"))
 	switch c {
 	case "":
@@ -119,7 +123,7 @@ func (l *LEDConfig) line(c string) string {
 	case "OFF":
 		return "off"
 	}
-	return fmt.Sprintf("%s %d", c, l.Brightness)
+	return fmt.Sprintf("%s %d", c, max(5, int(float64(l.Brightness)*factor+0.5)))
 }
 
 // brandColours are the colours people know these apps by.
@@ -154,9 +158,13 @@ var brandColours = map[string]string{
 	"vlc.exe": "FF8800", "potplayermini64.exe": "FFCC00", "steam.exe": "1A9FFF", "tradingview.exe": "2962FF",
 }
 
-// autoColour picks a fixed, saturated colour for an app: its brand colour, or
-// one made from a hash of the exe name so the same app always gets the same.
-func autoColour(lexe string) string {
+// autoColour picks a fixed colour for an app, and a factor for the light's
+// brightness. Apps of the same hue (Word, Zalo, Photoshop are all blue) still
+// differ: the colour keeps how deep the brand colour is and the brightness
+// follows how light it is, so a dark navy brand gives a dimmer, deeper light
+// than a bright sky-blue one. Unknown apps get a hue, depth and brightness
+// made from a hash of their exe name, the same every time.
+func autoColour(lexe string) (string, float64) {
 	if c, ok := brandColours[lexe]; ok {
 		return vivid(c)
 	}
@@ -164,21 +172,25 @@ func autoColour(lexe string) string {
 	for i := 0; i < len(lexe); i++ {
 		h = (h ^ uint32(lexe[i])) * 16777619
 	}
-	r, g, b := hsvToRGB(float64(h%360), 1, 1)
-	return fmt.Sprintf("%02X%02X%02X", r, g, b)
+	sat := 0.7 + 0.3*float64(h>>9%7)/6
+	r, g, b := hsvToRGB(float64(h%360), sat, 1)
+	return fmt.Sprintf("%02X%02X%02X", r, g, b), 0.4 + 0.6*float64(h>>17%7)/6
 }
 
-// vivid keeps a colour's hue but makes it fully saturated and bright. The
-// knob's lights wash out muted colours: Claude's #D97757 showed nearly white.
-// Grey and white (no hue) stay as they are.
-func vivid(hex string) string {
+// vivid keeps a brand colour's hue and returns a colour the knob can show,
+// with a brightness factor. The lights wash out muted colours (Claude's
+// #D97757 showed nearly white), so the depth is kept between 65 % and full
+// instead of copied, and the colour is drawn at full value; how dark the
+// brand colour is goes into the brightness factor (35 % to full) instead.
+// Grey and white (no hue) stay as they are, at full brightness.
+func vivid(hex string) (string, float64) {
 	var r, g, b int
 	if _, err := fmt.Sscanf(hex, "%02x%02x%02x", &r, &g, &b); err != nil {
-		return hex
+		return hex, 1
 	}
 	mx, mn := max(r, g, b), min(r, g, b)
 	if mx-mn < 24 {
-		return hex
+		return hex, 1
 	}
 	var h float64
 	d := float64(mx - mn)
@@ -195,10 +207,11 @@ func vivid(hex string) string {
 	if h >= 90 && h <= 165 {
 		h = 120
 	}
-	R, G, B := hsvToRGB(h, 1, 1)
-	return fmt.Sprintf("%02X%02X%02X", R, G, B)
+	s := d / float64(mx)
+	v := float64(mx) / 255
+	R, G, B := hsvToRGB(h, 0.65+0.35*s, 1)
+	return fmt.Sprintf("%02X%02X%02X", R, G, B), 0.35 + 0.65*v
 }
-
 func hsvToRGB(h, s, v float64) (byte, byte, byte) {
 	c := v * s
 	x := c * (1 - abs(mod(h/60, 2)-1))
