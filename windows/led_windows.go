@@ -41,10 +41,14 @@ import (
 var ledScript []byte
 
 type LEDConfig struct {
-	Brightness int               `json:"brightness"`
-	Auto       bool              `json:"auto,omitempty"`
-	Global     string            `json:"global,omitempty"`
-	Apps       map[string]string `json:"apps,omitempty"`
+	Brightness int  `json:"brightness"`
+	Auto       bool `json:"auto,omitempty"`
+	// Green scales the green part of every colour sent (0.3..1, default 0.75).
+	// The knob's board is green and tints the light green: orange looked
+	// yellow-green on the test knob.
+	Green  float64           `json:"green,omitempty"`
+	Global string            `json:"global,omitempty"`
+	Apps   map[string]string `json:"apps,omitempty"`
 }
 
 var ledColorRe = regexp.MustCompile(`^(?i:[0-9a-f]{6}|off)$`)
@@ -55,6 +59,12 @@ func (l *LEDConfig) validate() error {
 	}
 	if l.Brightness == 0 {
 		l.Brightness = 45
+	}
+	if l.Green == 0 {
+		l.Green = 0.75
+	}
+	if l.Green < 0.3 || l.Green > 1 {
+		return fmt.Errorf("led.green must be 0.3..1, not %v", l.Green)
 	}
 	check := func(where, c string) error {
 		if c != "" && !ledColorRe.MatchString(strings.TrimPrefix(c, "#")) {
@@ -122,6 +132,10 @@ func (l *LEDConfig) lineAt(c string, factor float64) string {
 		return ""
 	case "OFF":
 		return "off"
+	}
+	var r, g, b int
+	if _, err := fmt.Sscanf(c, "%02X%02X%02X", &r, &g, &b); err == nil && l.Green > 0 {
+		c = fmt.Sprintf("%02X%02X%02X", r, int(float64(g)*l.Green+0.5), b)
 	}
 	return fmt.Sprintf("%s %d", c, max(5, int(float64(l.Brightness)*factor+0.5)))
 }

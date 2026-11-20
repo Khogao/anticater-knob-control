@@ -727,6 +727,9 @@ function ledCard() {
       el('label', {}, auto, ' ', L('App chưa có màu: lấy màu đặc trưng của app, hoặc một màu cố định theo tên', 'Apps without a colour: their brand colour, or a fixed colour from their name')),
     ));
     rows.push(el('div', { class: 'row' }, el('span', { text: L('Độ sáng đèn (1–100)', 'Light brightness (1–100)') }), bright));
+    const green = el('input', { type: 'number', min: 30, max: 100, step: 5, value: Math.round(((led && led.green) || 0.75) * 100), style: 'width:5em' });
+    green.addEventListener('change', () => { ensure().green = Math.max(30, Math.min(100, +green.value || 75)) / 100; markDirty(); });
+    rows.push(el('div', { class: 'row' }, el('span', { text: L('Giảm xanh lá (%) — bù màu xanh của mạch trong núm', 'Green level (%) — offsets the green board inside the knob') }), green));
   }
   rows.push(el('p', { class: 'muted small', text: L(
     'Đèn đổi màu qua Bluetooth khi bạn chuyển app. Đóng phần mềm ANTICATER của hãng, vì nó giữ đèn của núm.',
