@@ -124,13 +124,34 @@ func (l *LEDConfig) line(c string) string {
 
 // brandColours are the colours people know these apps by.
 var brandColours = map[string]string{
+	// Microsoft Office and Windows
 	"winword.exe": "2B579A", "excel.exe": "217346", "powerpnt.exe": "D24726", "outlook.exe": "0078D4",
-	"onenote.exe": "7719AA", "ms-teams.exe": "6264A7", "teams.exe": "6264A7", "code.exe": "007ACC",
-	"claude.exe": "D97757", "firefox.exe": "FF7139", "spotify.exe": "1DB954", "slack.exe": "4A154B",
-	"discord.exe": "5865F2", "zoom.exe": "2D8CFF", "photoshop.exe": "31A8FF", "illustrator.exe": "FF9A00",
-	"acrobat.exe": "EC1C24", "acrord32.exe": "EC1C24", "notepad.exe": "FFFFFF", "windowsterminal.exe": "4D4D4D",
-	"telegram.exe": "26A5E4", "zalo.exe": "0068FF", "obsidian.exe": "7C3AED", "notion.exe": "FFFFFF",
-	"figma.exe": "A259FF", "resolve.exe": "FF5A36", "brave.exe": "FB542B", "opera.exe": "FF1B2D",
+	"onenote.exe": "7719AA", "msaccess.exe": "A4373A", "visio.exe": "3955A3", "winproj.exe": "31752F",
+	"mspub.exe": "077568", "ms-teams.exe": "6264A7", "teams.exe": "6264A7", "notepad.exe": "FFFFFF",
+	"windowsterminal.exe": "FFFFFF", "mspaint.exe": "0078D4", "taskmgr.exe": "0078D4",
+	// Office alternatives and PDF
+	"wps.exe": "C9282D", "et.exe": "2E8B57", "wpp.exe": "D24726", "acrobat.exe": "EC1C24", "acrord32.exe": "EC1C24",
+	"foxitpdfreader.exe": "F04D23", "foxitpdfeditor.exe": "F04D23",
+	// Chat
+	"zalo.exe": "0068FF", "whatsapp.exe": "25D366", "whatsapp.root.exe": "25D366", "telegram.exe": "26A5E4",
+	"messenger.exe": "0084FF", "skype.exe": "00AFF0", "viber.exe": "7360F2", "line.exe": "06C755",
+	"wechat.exe": "07C160", "weixin.exe": "07C160", "slack.exe": "4A154B", "discord.exe": "5865F2", "zoom.exe": "2D8CFF",
+	// Browsers other than Edge and Chrome
+	"firefox.exe": "FF7139", "brave.exe": "FB542B", "opera.exe": "FF1B2D", "coccoc.exe": "1DB954", "vivaldi.exe": "EF3939",
+	// CAD and 3D
+	"acad.exe": "E51937", "revit.exe": "0696D7", "3dsmax.exe": "37A5CC", "sketchup.exe": "005F9E",
+	"rhino.exe": "8A2BE2", "blender.exe": "F5792A", "inventor.exe": "F2A900", "civil3d.exe": "E51937",
+	// Adobe and design
+	"photoshop.exe": "31A8FF", "illustrator.exe": "FF9A00", "indesign.exe": "FF3366", "adobe premiere pro.exe": "9999FF",
+	"afterfx.exe": "9999FF", "lightroom.exe": "31A8FF", "figma.exe": "A259FF", "canva.exe": "00C4CC",
+	"resolve.exe": "FF5A36", "capcut.exe": "FFFFFF",
+	// Code
+	"code.exe": "007ACC", "cursor.exe": "FFFFFF", "devenv.exe": "5C2D91", "idea64.exe": "FE315D", "pycharm64.exe": "21D789",
+	"notepad++.exe": "90E59A", "sublime_text.exe": "FF9800", "githubdesktop.exe": "6E40C9", "postman.exe": "FF6C37",
+	"claude.exe": "D97757", "chatgpt.exe": "10A37F",
+	// Notes, media, other
+	"obsidian.exe": "7C3AED", "notion.exe": "FFFFFF", "evernote.exe": "00A82D", "spotify.exe": "1DB954",
+	"vlc.exe": "FF8800", "potplayermini64.exe": "FFCC00", "steam.exe": "1A9FFF", "tradingview.exe": "2962FF",
 }
 
 // autoColour picks a fixed, saturated colour for an app: its brand colour, or
