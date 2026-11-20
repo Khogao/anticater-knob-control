@@ -80,6 +80,7 @@ type monitorInfoEx struct {
 // percent. It returns at once.
 func adjustBrightness(delta int) {
 	brightnessOnce.Do(func() { go brightnessWorker() })
+	brightnessAllScreens.Store(cfg != nil && cfg.BrightnessScreens == "all")
 	// A DDC/CI change takes about 65 ms, as long as the gap between two knob
 	// ticks, so the worker folds ticks together and the screen moves in uneven
 	// steps. The flyout runs ahead of it from the last level seen, one step per
@@ -105,6 +106,17 @@ func brightnessWorker() {
 				break
 			}
 			h := monitorUnderCursor()
+			if brightnessAllScreens.Load() {
+				// Every screen moves; the flyout shows the one under the pointer.
+				for _, m := range allMonitors() {
+					if level, ok := applyBrightness(m, delta); ok && m == h {
+						pPostMessageW.Call(hwndMain, wmBrightnessShown, uintptr(level), h)
+					} else if !ok && m == h {
+						brightnessUnsupported.Store(true)
+					}
+				}
+				continue
+			}
 			if level, ok := applyBrightness(h, delta); ok {
 				pPostMessageW.Call(hwndMain, wmBrightnessShown, uintptr(level), h)
 			} else {
@@ -112,6 +124,29 @@ func brightnessWorker() {
 			}
 		}
 	}
+}
+
+// brightnessAllScreens is set from the config on the main thread
+// ("brightness_screens": "all") and read by the worker.
+var brightnessAllScreens atomic.Bool
+
+var (
+	pEnumDisplayMonitors = user32.NewProc("EnumDisplayMonitors")
+	enumMonitorsMu       sync.Mutex
+	enumMonitorsOut      []uintptr
+	enumMonitorsCallback = syscall.NewCallback(func(h, _, _, _ uintptr) uintptr {
+		enumMonitorsOut = append(enumMonitorsOut, h)
+		return 1
+	})
+)
+
+// allMonitors lists every screen.
+func allMonitors() []uintptr {
+	enumMonitorsMu.Lock()
+	defer enumMonitorsMu.Unlock()
+	enumMonitorsOut = nil
+	pEnumDisplayMonitors.Call(0, 0, enumMonitorsCallback, 0)
+	return append([]uintptr(nil), enumMonitorsOut...)
 }
 
 func monitorUnderCursor() uintptr {

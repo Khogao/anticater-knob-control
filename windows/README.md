@@ -203,6 +203,7 @@ cấu hình đang dùng.
 | `global` | Hồ sơ mặc định |
 | `apps` | Hồ sơ theo app |
 | `led` | Màu đèn của núm theo app (xem "Đèn của núm" ngay dưới) |
+| `brightness_screens` | `"cursor"` (mặc định): `brightness_up` / `brightness_down` chỉnh màn hình đang có con trỏ; `"all"`: chỉnh mọi màn hình cùng lúc, thanh báo hiện ở màn hình có con trỏ. Đổi trong thẻ "Độ sáng màn hình" của "Mặc định chung" |
 | `_help` | Ghi chú, app bỏ qua |
 
 **Đèn của núm** (`led_windows.go`, `knob-led.ps1`): đèn đổi màu khi app phía trước đổi.

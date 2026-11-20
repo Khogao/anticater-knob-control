@@ -682,7 +682,23 @@ function gestureCard(g) {
 
 function renderEditor() {
   if (!live.editor) return;
-  setKids(live.editor, ledCard(), GESTURES.map(gestureCard));
+  setKids(live.editor, selected === '' ? brightnessCard() : null, ledCard(), GESTURES.map(gestureCard));
+}
+
+// brightnessCard picks which screens the brightness actions move (config.brightness_screens).
+function brightnessCard() {
+  if (state && state.platform && state.platform !== 'windows') return null;
+  const all = el('input', { type: 'checkbox' });
+  all.checked = config.brightness_screens === 'all';
+  all.addEventListener('change', () => {
+    if (all.checked) config.brightness_screens = 'all'; else delete config.brightness_screens;
+    markDirty();
+  });
+  return el('div', { class: 'card' },
+    el('div', { class: 'card-head' }, el('strong', { text: L('Độ sáng màn hình', 'Screen brightness') })),
+    el('div', { class: 'card-body' }, el('label', {}, all, ' ', L(
+      'Chỉnh mọi màn hình cùng lúc (bỏ chọn: chỉ màn hình đang có con trỏ chuột)',
+      'Change every screen together (unticked: only the screen under the mouse pointer)'))));
 }
 
 // ledCard edits the colour of the knob's lights for the selected profile
