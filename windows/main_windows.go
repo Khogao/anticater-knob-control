@@ -401,6 +401,10 @@ func reloadConfig(announce bool) error {
 	setLanguage(cfg.Language)
 	deviceKnown = map[uintptr]bool{}
 	logf("config loaded: %d app entries, devices %v", len(cfg.Apps), cfg.Devices)
+	if ledHook != 0 {
+		ledLast = "" // a colour change applies to the app in front now, not at the next switch
+		ledUpdate()
+	}
 	if announce {
 		balloon("Anticater Knob", fmt.Sprintf(L("Đã nạp lại cấu hình (%d hồ sơ app).", "Config reloaded (%d app entries)."), len(cfg.Apps)))
 	}
