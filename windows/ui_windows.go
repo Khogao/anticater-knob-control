@@ -172,6 +172,8 @@ func (uiBackend) Command(name, arg string) (err error) {
 			recentRaw, lastRawText = nil, ""
 		case "diagnostics":
 			writeDiagnostics()
+		case "ledPreview":
+			ledPreview(arg)
 		case "openConfig":
 			shellOpen(configPath())
 		case "openLog":

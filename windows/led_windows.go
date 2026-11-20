@@ -291,6 +291,33 @@ var (
 
 const eventSystemForeground = 3
 
+// ledPreviewLine, set from the settings page, is shown while the settings
+// window is in front: the colour of the profile selected there, or the colour
+// being picked. Main thread only.
+var ledPreviewLine string
+
+// ledPreview handles the settings page's "ledPreview" command: "key:<profile
+// key>" shows that profile's colour, "colour:RRGGBB" a colour being picked,
+// "" goes back to the settings window's own colour.
+func ledPreview(arg string) {
+	if cfg == nil || cfg.LED == nil {
+		return
+	}
+	ledPreviewLine = ""
+	switch {
+	case strings.HasPrefix(arg, "key:"):
+		exe, title, _ := strings.Cut(strings.TrimPrefix(arg, "key:"), "|")
+		c, f := cfg.LED.pick(exe, title)
+		ledPreviewLine = cfg.LED.lineAt(c, f)
+	case strings.HasPrefix(arg, "colour:"):
+		if c := strings.TrimPrefix(strings.TrimPrefix(arg, "colour:"), "#"); ledColorRe.MatchString(c) {
+			ledPreviewLine = cfg.LED.lineAt(c, 1)
+		}
+	}
+	ledLast = ""
+	ledUpdate()
+}
+
 // shellParts are Windows pieces that take the foreground for a moment (Start,
 // search, the clock and volume flyouts, the touch keyboard, the ThinkPad
 // on-screen display). The lights keep the colour of the app before them.
@@ -346,6 +373,9 @@ func ledUpdate() {
 		}
 	}
 	line := cfg.LED.colour(exe, title)
+	if exe == "settings" && ledPreviewLine != "" {
+		line = ledPreviewLine // the colour being edited in the settings window
+	}
 	if line == "" || line == ledLast {
 		return
 	}

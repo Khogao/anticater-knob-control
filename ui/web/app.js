@@ -191,6 +191,7 @@ function setStatus(text, error) {
 
 function select(key) {
   selected = key;
+  previewLight('key:' + (key === '' ? 'desktop' : key));
   renderList();
   renderHeader();
   renderEditor();
@@ -701,6 +702,23 @@ function brightnessCard() {
       'Change every screen together (unticked: only the screen under the mouse pointer)'))));
 }
 
+// previewLight shows a colour on the knob while this window is in front: the
+// selected profile's, or the one being picked. At most one call per 80 ms;
+// the last colour always goes out.
+let previewTimer = 0, previewNext = '';
+function previewLight(arg) {
+  if (!config || !config.led) return;
+  previewNext = arg;
+  if (previewTimer) return;
+  const send = () => {
+    const a = previewNext;
+    previewNext = '';
+    api('POST', 'command', { name: 'ledPreview', arg: a }).catch(() => {});
+    previewTimer = setTimeout(() => { previewTimer = 0; if (previewNext) previewLight(previewNext); }, 80);
+  };
+  send();
+}
+
 // ledCard edits the colour of the knob's lights for the selected profile
 // (config.led, see windows/led_windows.go). The global profile also holds the
 // desktop colour and the "auto" switch for apps without a colour.
@@ -719,6 +737,7 @@ function ledCard() {
   const shown = colour || (state && state.ledColours && state.ledColours[key]) || '';
   const pick = el('input', { type: 'color', value: hex(shown) });
   pick.addEventListener('input', () => {
+    previewLight('colour:' + pick.value.slice(1).toUpperCase());
     ensure().apps[key] = pick.value.slice(1).toUpperCase();
     markDirty();
     renderEditor();
