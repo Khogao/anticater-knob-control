@@ -610,6 +610,13 @@ func wndProc(hwnd uintptr, message uint32, wParam, lParam uintptr) uintptr {
 	case wmKnobKey:
 		if int(wParam) < len(gestureNames) {
 			rawCount++
+			if gestureNames[wParam] == "press_rotate_left" {
+				// The knob holds Shift while it sends F13 for this gesture. Left
+				// down, it turns the scroll action into Shift + wheel, which most
+				// apps read as a sideways scroll, so the page barely moves. Let
+				// Shift go first; the knob's own release later changes nothing.
+				sendKey(vkShift, true)
+			}
 			runGesture(gestureNames[wParam], fmt.Sprintf("key F13 time=%d", uint32(lParam)))
 		}
 		return 0
