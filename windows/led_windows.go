@@ -190,6 +190,11 @@ func vivid(hex string) string {
 	default:
 		h = (float64(r-g)/d + 4) * 60
 	}
+	// The knob's blue light is strong: a green with any blue in it (Excel's
+	// #217346 sits at hue 146) shows as turquoise. Brand greens become pure green.
+	if h >= 90 && h <= 165 {
+		h = 120
+	}
 	R, G, B := hsvToRGB(h, 1, 1)
 	return fmt.Sprintf("%02X%02X%02X", R, G, B)
 }
