@@ -67,24 +67,25 @@ var (
 )
 
 const (
-	wmDestroy      = 0x0002
-	wmTimer        = 0x0113
-	wmInput        = 0x00FF
-	wmApp          = 0x8000
-	wmTray         = wmApp + 1
-	wmUICall       = wmApp + 2 // the settings page has work queued for this thread
-	wmShowUI       = wmApp + 3 // a second launch asks the running app to show settings
-	wmKnobKey      = wmApp + 4 // the hook saw the knob's F13; wParam indexes gestureNames
-	vkF13          = 0x7C
-	wmLButtonUp    = 0x0202
-	wmRButtonUp    = 0x0205
-	wmKeyDown      = 0x0100
-	wmSysKeyDown   = 0x0104
-	whKeyboardLL   = 13
-	ridInput       = 0x10000003
-	ridiDeviceName = 0x20000007
-	ridevInputSink = 0x00000100
-	rimTypeHID     = 2
+	wmDestroy         = 0x0002
+	wmTimer           = 0x0113
+	wmInput           = 0x00FF
+	wmApp             = 0x8000
+	wmTray            = wmApp + 1
+	wmUICall          = wmApp + 2 // the settings page has work queued for this thread
+	wmShowUI          = wmApp + 3 // a second launch asks the running app to show settings
+	wmKnobKey         = wmApp + 4 // the hook saw the knob's F13; wParam indexes gestureNames
+	wmBrightnessShown = wmApp + 5 // a screen took a brightness change; wParam = level, lParam = HMONITOR
+	vkF13             = 0x7C
+	wmLButtonUp       = 0x0202
+	wmRButtonUp       = 0x0205
+	wmKeyDown         = 0x0100
+	wmSysKeyDown      = 0x0104
+	whKeyboardLL      = 13
+	ridInput          = 0x10000003
+	ridiDeviceName    = 0x20000007
+	ridevInputSink    = 0x00000100
+	rimTypeHID        = 2
 
 	inputMouse    = 0
 	inputKeyboard = 1

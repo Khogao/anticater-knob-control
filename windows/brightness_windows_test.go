@@ -56,7 +56,7 @@ func level(h uintptr, device string) (monitorLevel, bool) {
 	for i := range brightnessLevels[device] {
 		brightnessLevels[device][i].readAt = time.Time{}
 	}
-	if !applyBrightness(h, 0) {
+	if _, ok := applyBrightness(h, 0); !ok {
 		return monitorLevel{}, false
 	}
 	if internalDisplays()[device] {

@@ -41,7 +41,7 @@ const (
 	cmdLanguage    = 109
 	trayIconID     = 1
 
-	mainClassName = "AnticaterKnobWindow"
+	mainClassName  = "AnticaterKnobWindow"
 	idiApplication = 32512
 )
 
@@ -69,9 +69,9 @@ var (
 	pending    []pendingKey
 
 	rawCount, recognizedCount, swallowedCount, resentCount, hookCalls int
-	recentRaw                                              []string
-	devicesSeen                                            []string
-	deviceKnown                                            = map[uintptr]bool{}
+	recentRaw                                                         []string
+	devicesSeen                                                       []string
+	deviceKnown                                                       = map[uintptr]bool{}
 
 	everyGesture string
 	everyCount   int

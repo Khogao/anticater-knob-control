@@ -92,7 +92,10 @@ func brightnessWorker() {
 			if delta == 0 {
 				break
 			}
-			if !applyBrightness(monitorUnderCursor(), delta) {
+			h := monitorUnderCursor()
+			if level, ok := applyBrightness(h, delta); ok {
+				pPostMessageW.Call(hwndMain, wmBrightnessShown, uintptr(level), h)
+			} else {
 				brightnessUnsupported.Store(true)
 			}
 		}
@@ -115,9 +118,10 @@ func monitorDevice(hMonitor uintptr) string {
 	return syscall.UTF16ToString(mi.Device[:])
 }
 
-// applyBrightness moves one screen by delta percent. It reports whether the
-// screen took the change (or is already at the end of its range).
-func applyBrightness(hMonitor uintptr, delta int) bool {
+// applyBrightness moves one screen by delta percent. It returns the new level
+// in percent, and whether the screen took the change (or is already at the end
+// of its range).
+func applyBrightness(hMonitor uintptr, delta int) (int, bool) {
 	device := monitorDevice(hMonitor)
 	if device != "" && internalDisplays()[device] {
 		return adjustPanel(delta)
@@ -125,14 +129,14 @@ func applyBrightness(hMonitor uintptr, delta int) bool {
 	return adjustDDC(hMonitor, device, delta)
 }
 
-func adjustDDC(hMonitor uintptr, device string, delta int) bool {
+func adjustDDC(hMonitor uintptr, device string, delta int) (int, bool) {
 	var count uint32
 	if ok, _, _ := pGetNumberOfPhysMonitors.Call(hMonitor, uintptr(unsafe.Pointer(&count))); ok == 0 || count == 0 {
-		return false
+		return 0, false
 	}
 	physical := make([]physicalMonitor, count)
 	if ok, _, _ := pGetPhysicalMonitors.Call(hMonitor, uintptr(count), uintptr(unsafe.Pointer(&physical[0]))); ok == 0 {
-		return false
+		return 0, false
 	}
 	defer pDestroyPhysicalMonitors.Call(uintptr(count), uintptr(unsafe.Pointer(&physical[0])))
 	levels := brightnessLevels[device]
@@ -142,7 +146,7 @@ func adjustDDC(hMonitor uintptr, device string, delta int) bool {
 	levels = levels[:len(physical)]
 	brightnessLevels[device] = levels
 
-	changed := false
+	changed, percent := false, 0
 	for i, p := range physical {
 		level := &levels[i]
 		if time.Since(level.readAt) > brightnessStale {
@@ -155,18 +159,19 @@ func adjustDDC(hMonitor uintptr, device string, delta int) bool {
 			continue // DDC/CI switched off in the monitor's menu
 		}
 		want := clamp(level.cur+delta, level.min, level.max)
-		if want == level.cur {
-			changed = true // already at the end of its range
-			continue
-		}
-		if ok, _, _ := pSetMonitorBrightness.Call(p.Handle, uintptr(want)); ok != 0 {
+		if want != level.cur {
+			if ok, _, _ := pSetMonitorBrightness.Call(p.Handle, uintptr(want)); ok == 0 {
+				level.readAt = time.Time{} // read it again next time
+				continue
+			}
 			level.cur, level.readAt = want, time.Now()
-			changed = true
-		} else {
-			level.readAt = time.Time{} // read it again next time
 		}
+		if !changed {
+			percent = (level.cur - level.min) * 100 / (level.max - level.min)
+		}
+		changed = true
 	}
-	return changed
+	return percent, changed
 }
 
 func clamp(v, lo, hi int) int {
@@ -251,12 +256,12 @@ func internalDisplays() map[string]bool {
 type displayBrightness struct{ Policy, AC, DC uint8 }
 
 // adjustPanel moves the built-in panel by delta percent through \\.\LCD.
-func adjustPanel(delta int) bool {
+func adjustPanel(delta int) (int, bool) {
 	name, _ := syscall.UTF16PtrFromString(`\\.\LCD`)
 	h, err := syscall.CreateFile(name, syscall.GENERIC_READ|syscall.GENERIC_WRITE,
 		syscall.FILE_SHARE_READ|syscall.FILE_SHARE_WRITE, nil, syscall.OPEN_EXISTING, 0, 0)
 	if err != nil {
-		return false // the driver does not offer it
+		return 0, false // the driver does not offer it
 	}
 	defer syscall.CloseHandle(h)
 	var n uint32
@@ -265,7 +270,7 @@ func adjustPanel(delta int) bool {
 		// still answers a query with the old level, so a fresh cached value wins.
 		var b displayBrightness
 		if err := syscall.DeviceIoControl(h, ioctlVideoQueryDisplayLevel, nil, 0, (*byte)(unsafe.Pointer(&b)), 3, &n, nil); err != nil {
-			return false
+			return 0, false
 		}
 		cur := b.AC
 		if b.Policy == displayPolicyDC {
@@ -275,15 +280,15 @@ func adjustPanel(delta int) bool {
 	}
 	want := clamp(panelLevel.cur+delta, 0, 100)
 	if want == panelLevel.cur {
-		return true
+		return want, true
 	}
 	b := displayBrightness{Policy: displayPolicyBoth, AC: uint8(want), DC: uint8(want)}
 	if err := syscall.DeviceIoControl(h, ioctlVideoSetDisplayLevel, (*byte)(unsafe.Pointer(&b)), 3, nil, 0, &n, nil); err != nil {
 		panelLevel.readAt = time.Time{}
-		return false
+		return 0, false
 	}
 	panelLevel.cur, panelLevel.readAt = want, time.Now()
-	return true
+	return want, true
 }
 
 // brightnessUnsupported is set when the screen under the pointer did not accept
