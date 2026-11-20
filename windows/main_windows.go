@@ -621,7 +621,14 @@ func wndProc(hwnd uintptr, message uint32, wParam, lParam uintptr) uintptr {
 		}
 		return 0
 	case wmBrightnessShown:
-		osdShow(lParam, int(wParam))
+		// The screen's real level. While more ticks are queued, the flyout is
+		// already showing a level ahead of it; do not pull the bar back.
+		if brightnessPending.Load() == 0 {
+			osdLevels[lParam] = int(wParam)
+			osdShow(lParam, int(wParam))
+		} else if _, ok := osdLevels[lParam]; !ok {
+			osdLevels[lParam] = int(wParam)
+		}
 		return 0
 	case wmUICall:
 		runUICalls()

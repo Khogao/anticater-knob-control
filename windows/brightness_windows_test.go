@@ -35,7 +35,9 @@ func TestBrightnessRoundTrip(t *testing.T) {
 		if before.cur+step > before.max {
 			step = -step
 		}
+		t0 := time.Now()
 		applyBrightness(h, step)
+		t.Logf("%s: one step took %v", device, time.Since(t0))
 		after, _ := level(h, device)
 		applyBrightness(h, -step)
 		restored, _ := level(h, device)

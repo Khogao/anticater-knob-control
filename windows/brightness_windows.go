@@ -52,7 +52,9 @@ var (
 	// Owned by the worker goroutine. Keyed by the display's GDI name
 	// (\\.\DISPLAY1...), which stays put while monitor handles may be reissued.
 	brightnessLevels = map[string][]monitorLevel{}
-	panelLevel       monitorLevel
+	// Main thread only: the level last shown in the flyout, per screen.
+	osdLevels  = map[uintptr]int{}
+	panelLevel monitorLevel
 )
 
 type physicalMonitor struct {
@@ -78,6 +80,16 @@ type monitorInfoEx struct {
 // percent. It returns at once.
 func adjustBrightness(delta int) {
 	brightnessOnce.Do(func() { go brightnessWorker() })
+	// A DDC/CI change takes about 65 ms, as long as the gap between two knob
+	// ticks, so the worker folds ticks together and the screen moves in uneven
+	// steps. The flyout runs ahead of it from the last level seen, one step per
+	// tick, so at least the bar moves evenly.
+	if h := monitorUnderCursor(); h != 0 {
+		if last, ok := osdLevels[h]; ok {
+			osdLevels[h] = clamp(last+delta, 0, 100)
+			osdShow(h, osdLevels[h])
+		}
+	}
 	brightnessPending.Add(int32(delta))
 	select {
 	case brightnessWake <- struct{}{}:
@@ -151,16 +163,30 @@ func adjustDDC(hMonitor uintptr, device string, delta int) (int, bool) {
 		level := &levels[i]
 		if time.Since(level.readAt) > brightnessStale {
 			// The level can also be changed with the monitor's own buttons.
-			var lo, cur, hi uint32
-			ok, _, _ := pGetMonitorBrightness.Call(p.Handle, uintptr(unsafe.Pointer(&lo)), uintptr(unsafe.Pointer(&cur)), uintptr(unsafe.Pointer(&hi)))
-			*level = monitorLevel{min: int(lo), cur: int(cur), max: int(hi), ok: ok != 0 && hi > lo, readAt: time.Now()}
+			// DDC/CI reads fail now and then (seen about one in three on the
+			// test monitor), so try again before giving up, and keep the last
+			// good level rather than skipping the tick.
+			for try := 0; try < 3; try++ {
+				var lo, cur, hi uint32
+				ok, _, _ := pGetMonitorBrightness.Call(p.Handle, uintptr(unsafe.Pointer(&lo)), uintptr(unsafe.Pointer(&cur)), uintptr(unsafe.Pointer(&hi)))
+				if ok != 0 && hi > lo {
+					*level = monitorLevel{min: int(lo), cur: int(cur), max: int(hi), ok: true, readAt: time.Now()}
+					break
+				}
+				time.Sleep(40 * time.Millisecond)
+			}
 		}
 		if !level.ok {
 			continue // DDC/CI switched off in the monitor's menu
 		}
 		want := clamp(level.cur+delta, level.min, level.max)
 		if want != level.cur {
-			if ok, _, _ := pSetMonitorBrightness.Call(p.Handle, uintptr(want)); ok == 0 {
+			set := false
+			for try := 0; try < 2 && !set; try++ {
+				ok, _, _ := pSetMonitorBrightness.Call(p.Handle, uintptr(want))
+				set = ok != 0
+			}
+			if !set {
 				level.readAt = time.Time{} // read it again next time
 				continue
 			}
