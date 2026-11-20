@@ -16,6 +16,7 @@ var (
 
 	pGetMessageTime   = user32.NewProc("GetMessageTime")
 	pPostMessageW     = user32.NewProc("PostMessageW")
+	pGetAsyncKeyState = user32.NewProc("GetAsyncKeyState")
 	pLoadImageW       = user32.NewProc("LoadImageW")
 	pGetSystemMetrics = user32.NewProc("GetSystemMetrics")
 	pShowWindow       = user32.NewProc("ShowWindow")
@@ -66,22 +67,25 @@ var (
 )
 
 const (
-	wmDestroy      = 0x0002
-	wmTimer        = 0x0113
-	wmInput        = 0x00FF
-	wmApp          = 0x8000
-	wmTray         = wmApp + 1
-	wmUICall       = wmApp + 2 // the settings page has work queued for this thread
-	wmShowUI       = wmApp + 3 // a second launch asks the running app to show settings
-	wmLButtonUp    = 0x0202
-	wmRButtonUp    = 0x0205
-	wmKeyDown      = 0x0100
-	wmSysKeyDown   = 0x0104
-	whKeyboardLL   = 13
-	ridInput       = 0x10000003
-	ridiDeviceName = 0x20000007
-	ridevInputSink = 0x00000100
-	rimTypeHID     = 2
+	wmDestroy         = 0x0002
+	wmTimer           = 0x0113
+	wmInput           = 0x00FF
+	wmApp             = 0x8000
+	wmTray            = wmApp + 1
+	wmUICall          = wmApp + 2 // the settings page has work queued for this thread
+	wmShowUI          = wmApp + 3 // a second launch asks the running app to show settings
+	wmKnobKey         = wmApp + 4 // the hook saw the knob's F13; wParam indexes gestureNames
+	wmBrightnessShown = wmApp + 5 // a screen took a brightness change; wParam = level, lParam = HMONITOR
+	vkF13             = 0x7C
+	wmLButtonUp       = 0x0202
+	wmRButtonUp       = 0x0205
+	wmKeyDown         = 0x0100
+	wmSysKeyDown      = 0x0104
+	whKeyboardLL      = 13
+	ridInput          = 0x10000003
+	ridiDeviceName    = 0x20000007
+	ridevInputSink    = 0x00000100
+	rimTypeHID        = 2
 
 	inputMouse    = 0
 	inputKeyboard = 1
@@ -242,8 +246,47 @@ func foregroundApp() (exe, title string) {
 	return windowApp(hwnd)
 }
 
-// windowApp returns the exe file name and title of a top-level window.
+// windowApp returns the exe file name and title of a top-level window. Store
+// (UWP) apps all live in ApplicationFrameHost.exe windows; for those it
+// returns the app's own process, found as a child window from another process,
+// so each app gets its own profile and light colour.
 func windowApp(hwnd uintptr) (exe, title string) {
+	exe, title = windowProcess(hwnd)
+	if strings.EqualFold(exe, "ApplicationFrameHost.exe") {
+		if child := uwpContent(hwnd); child != 0 {
+			if real, _ := windowProcess(child); real != "" {
+				exe = real
+			}
+		}
+	}
+	return exe, title
+}
+
+var (
+	pEnumChildWindows = user32.NewProc("EnumChildWindows")
+	uwpFramePID       uint32
+	uwpFound          uintptr
+	uwpEnumCallback   = syscall.NewCallback(func(child, _ uintptr) uintptr {
+		var pid uint32
+		pGetWindowThreadProcessId.Call(child, uintptr(unsafe.Pointer(&pid)))
+		if pid != 0 && pid != uwpFramePID {
+			uwpFound = child
+			return 0
+		}
+		return 1
+	})
+)
+
+// uwpContent returns the child window of a frame host window that belongs to
+// the hosted app, or 0. Main thread only.
+func uwpContent(frame uintptr) uintptr {
+	uwpFramePID, uwpFound = 0, 0
+	pGetWindowThreadProcessId.Call(frame, uintptr(unsafe.Pointer(&uwpFramePID)))
+	pEnumChildWindows.Call(frame, uwpEnumCallback, 0)
+	return uwpFound
+}
+
+func windowProcess(hwnd uintptr) (exe, title string) {
 	tbuf := make([]uint16, 512)
 	n, _, _ := pGetWindowTextW.Call(hwnd, uintptr(unsafe.Pointer(&tbuf[0])), uintptr(len(tbuf)))
 	title = syscall.UTF16ToString(tbuf[:n])

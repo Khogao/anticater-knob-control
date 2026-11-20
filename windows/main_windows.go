@@ -41,7 +41,7 @@ const (
 	cmdLanguage    = 109
 	trayIconID     = 1
 
-	mainClassName = "AnticaterKnobWindow"
+	mainClassName  = "AnticaterKnobWindow"
 	idiApplication = 32512
 )
 
@@ -69,9 +69,9 @@ var (
 	pending    []pendingKey
 
 	rawCount, recognizedCount, swallowedCount, resentCount, hookCalls int
-	recentRaw                                              []string
-	devicesSeen                                            []string
-	deviceKnown                                            = map[uintptr]bool{}
+	recentRaw                                                         []string
+	devicesSeen                                                       []string
+	deviceKnown                                                       = map[uintptr]bool{}
 
 	everyGesture string
 	everyCount   int
@@ -100,6 +100,17 @@ func logf(format string, args ...any) {
 		logFile = f
 	}
 	fmt.Fprintf(logFile, "%s %s\n", time.Now().Format("15:04:05.000"), fmt.Sprintf(format, args...))
+}
+
+// gestureApp is the app whose profile a gesture uses: the app in front, except
+// that the settings window, an Edge or Chrome app window, counts as no app so
+// it does not pick up the browser's profile (hold + turn switched tabs there).
+func gestureApp() (string, string) {
+	exe, title := currentApp()
+	if isUIWindow(exe, title) {
+		return "", ""
+	}
+	return exe, title
 }
 
 func currentApp() (string, string) {
@@ -230,12 +241,32 @@ func onKnobReport(report []byte, msgTime uint32) {
 	if paused {
 		return
 	}
+	runGesture(gesture, fmt.Sprintf("report % x  time=%d", report, msgTime))
+}
+
+// knobKeyGesture maps the keys the knob sends once its hold + turn has been
+// reassigned in the vendor's configuration app: F13 for hold + turn right,
+// Shift + F13 for hold + turn left. The knob's default brightness reports are
+// read by Windows itself and always show the brightness flyout (README 9.5);
+// F13 is a key no ordinary keyboard has, so it can be claimed outright.
+func knobKeyGesture(vk uint32) string {
+	if vk != vkF13 {
+		return ""
+	}
+	if s, _, _ := pGetAsyncKeyState.Call(vkShift); s&0x8000 != 0 {
+		return "press_rotate_left"
+	}
+	return "press_rotate_right"
+}
+
+func runGesture(gesture, origin string) {
+	lastKnobMs = tickMs()
 	recognizedCount++
 	gestureCounts[gesture]++
-	exe, title := currentApp()
+	exe, title := gestureApp()
 	act, source := cfg.resolve(gesture, exe, title)
 	lastEventText = fmt.Sprintf("%s in %s -> %s", gesture, orDash(exe), describe(act, source))
-	logf("report % x  time=%d  %s  app=%s  -> %s", report, msgTime, gesture, exe, describe(act, source))
+	logf("%s  %s  app=%s  -> %s", origin, gesture, exe, describe(act, source))
 	if act.isPassthrough() || act.Type == "noop" {
 		return
 	}
@@ -281,13 +312,27 @@ func hookProc(code int32, wParam, lParam uintptr) uintptr {
 		// report), so the flag cannot be used to skip them. Only keys this app
 		// sent itself, recognized by their mark, are let through untouched.
 		if k.ExtraInfo != ownInputMark {
+			if gesture := knobKeyGesture(k.VkCode); gesture != "" {
+				// Swallow both the press and the release; act once, on the press,
+				// from the message loop so the hook returns at once.
+				if wParam == wmKeyDown || wParam == wmSysKeyDown {
+					for i, g := range gestureNames {
+						if g == gesture {
+							pPostMessageW.Call(hwndMain, wmKnobKey, uintptr(i), uintptr(k.Time))
+						}
+					}
+				}
+				return 1
+			}
 			// Diagnostic: a key outside the typing range that coincides with a
 			// knob report is probably one the knob produced and is not handled.
 			if vk := k.VkCode; gestureForVK(vk) == "" && (vk < 0x08 || (vk > 0xA5 && vk < 0xBA) || vk > 0xE2) && knobReportedNear(k.Time) {
 				logf("hook other vk=0x%02x scan=0x%02x flags=0x%02x time=%d (near a knob report, not handled)", vk, k.ScanCode, k.Flags, k.Time)
 			}
 			if gesture := gestureForVK(k.VkCode); gesture != "" {
-				exe, title := currentApp()
+				// Same app as runGesture uses, or the knob's volume key would be
+				// swallowed here while its action resolves to passthrough there.
+				exe, title := gestureApp()
 				if act, _ := cfg.resolve(gesture, exe, title); !act.isPassthrough() {
 					if knobReportedNear(k.Time) {
 						swallowedCount++
@@ -356,6 +401,10 @@ func reloadConfig(announce bool) error {
 	setLanguage(cfg.Language)
 	deviceKnown = map[uintptr]bool{}
 	logf("config loaded: %d app entries, devices %v", len(cfg.Apps), cfg.Devices)
+	if ledHook != 0 {
+		ledLast = "" // a colour change applies to the app in front now, not at the next switch
+		ledUpdate()
+	}
 	if announce {
 		balloon("Anticater Knob", fmt.Sprintf(L("Đã nạp lại cấu hình (%d hồ sơ app).", "Config reloaded (%d app entries)."), len(cfg.Apps)))
 	}
@@ -367,6 +416,7 @@ func housekeeping() {
 		reloadConfig(true)
 	}
 	warnBrightnessOnce()
+	ledHousekeeping()
 	exe, title := foregroundApp()
 	if exe != "" && !strings.EqualFold(exe, "explorer.exe") && !strings.EqualFold(exe, selfExeName()) && !isUIWindow(exe, title) {
 		lastAppExe, lastAppTitle = exe, title
@@ -575,6 +625,29 @@ func wndProc(hwnd uintptr, message uint32, wParam, lParam uintptr) uintptr {
 			housekeeping()
 		}
 		return 0
+	case wmKnobKey:
+		if int(wParam) < len(gestureNames) {
+			rawCount++
+			if gestureNames[wParam] == "press_rotate_left" {
+				// The knob holds Shift while it sends F13 for this gesture. Left
+				// down, it turns the scroll action into Shift + wheel, which most
+				// apps read as a sideways scroll, so the page barely moves. Let
+				// Shift go first; the knob's own release later changes nothing.
+				sendKey(vkShift, true)
+			}
+			runGesture(gestureNames[wParam], fmt.Sprintf("key F13 time=%d", uint32(lParam)))
+		}
+		return 0
+	case wmBrightnessShown:
+		// The screen's real level. While more ticks are queued, the flyout is
+		// already showing a level ahead of it; do not pull the bar back.
+		if brightnessPending.Load() == 0 {
+			osdLevels[lParam] = int(wParam)
+			osdShow(lParam, int(wParam))
+		} else if _, ok := osdLevels[lParam]; !ok {
+			osdLevels[lParam] = int(wParam)
+		}
+		return 0
 	case wmUICall:
 		runUICalls()
 		return 0
@@ -661,6 +734,8 @@ func main() {
 
 	pSetTimer.Call(hwndMain, timerHousekeeping, 1000, 0)
 	logf("started; config %s", configPath())
+	ledStart()
+	defer ledStop()
 
 	var m msg
 	for {

@@ -191,6 +191,7 @@ function setStatus(text, error) {
 
 function select(key) {
   selected = key;
+  previewLight('key:' + (key === '' ? 'desktop' : key));
   renderList();
   renderHeader();
   renderEditor();
@@ -682,7 +683,104 @@ function gestureCard(g) {
 
 function renderEditor() {
   if (!live.editor) return;
-  setKids(live.editor, GESTURES.map(gestureCard));
+  setKids(live.editor, selected === '' ? brightnessCard() : null, ledCard(), GESTURES.map(gestureCard));
+}
+
+// brightnessCard picks which screens the brightness actions move (config.brightness_screens).
+function brightnessCard() {
+  if (state && state.platform && state.platform !== 'windows') return null;
+  const all = el('input', { type: 'checkbox' });
+  all.checked = config.brightness_screens === 'all';
+  all.addEventListener('change', () => {
+    if (all.checked) config.brightness_screens = 'all'; else delete config.brightness_screens;
+    markDirty();
+  });
+  return el('div', { class: 'card' },
+    el('div', { class: 'card-head' }, el('strong', { text: L('Độ sáng màn hình', 'Screen brightness') })),
+    el('div', { class: 'card-body' }, el('label', {}, all, ' ', L(
+      'Chỉnh mọi màn hình cùng lúc (bỏ chọn: chỉ màn hình đang có con trỏ chuột)',
+      'Change every screen together (unticked: only the screen under the mouse pointer)'))));
+}
+
+// previewLight shows a colour on the knob while this window is in front: the
+// selected profile's, or the one being picked. At most one call per 80 ms;
+// the last colour always goes out.
+let previewTimer = 0, previewNext = '';
+function previewLight(arg) {
+  if (!config || !config.led) return;
+  previewNext = arg;
+  if (previewTimer) return;
+  const send = () => {
+    const a = previewNext;
+    previewNext = '';
+    api('POST', 'command', { name: 'ledPreview', arg: a }).catch(() => {});
+    previewTimer = setTimeout(() => { previewTimer = 0; if (previewNext) previewLight(previewNext); }, 80);
+  };
+  send();
+}
+
+// ledCard edits the colour of the knob's lights for the selected profile
+// (config.led, see windows/led_windows.go). The global profile also holds the
+// desktop colour and the "auto" switch for apps without a colour.
+function ledCard() {
+  if (state && state.platform && state.platform !== 'windows') return null;
+  const led = config.led || null;
+  const key = selected === '' ? 'desktop' : selected;
+  const colour = led && led.apps && led.apps[key];
+  const hex = (c) => '#' + (c && /^[0-9a-f]{6}$/i.test(c) ? c : 'FFFFFF');
+  const ensure = () => {
+    if (!config.led) config.led = { brightness: 45, auto: true, apps: {} };
+    config.led.apps = config.led.apps || {};
+    return config.led;
+  };
+  // The colour in force now: the one set here, or the automatic one the app reports.
+  const shown = colour || (state && state.ledColours && state.ledColours[key]) || '';
+  const pick = el('input', { type: 'color', value: hex(shown) });
+  let code = null; // the text next to the picker, set below
+  // 'input' fires while the colour dialog is open: update the light and the
+  // label only. Rebuilding the card here would remove this input and close the
+  // dialog under the mouse. The card is rebuilt once the dialog closes.
+  pick.addEventListener('input', () => {
+    const c = pick.value.slice(1).toUpperCase();
+    previewLight('colour:' + c);
+    ensure().apps[key] = c;
+    code.textContent = '#' + c;
+    markDirty();
+  });
+  pick.addEventListener('change', () => renderEditor());
+  const clear = el('button', {
+    text: selected === '' ? L('Không đổi màu ở màn hình nền', 'No colour on the desktop') : L('Dùng màu tự động', 'Use the automatic colour'),
+    disabled: !colour,
+    onclick: () => { delete ensure().apps[key]; markDirty(); renderEditor(); },
+  });
+  const rows = [
+    el('div', { class: 'row' },
+      el('span', { text: selected === '' ? L('Màu ở màn hình nền', 'Colour on the desktop') : L('Màu khi dùng app này', 'Colour in this app') }),
+      pick,
+      code = el('span', { class: 'muted small', text: colour ? '#' + colour.toUpperCase()
+        : shown && /^[0-9a-f]{6}$/i.test(shown) ? '#' + shown.toUpperCase() + L(' (tự động)', ' (automatic)') : L('(tự động)', '(automatic)') }),
+      clear),
+  ];
+  if (selected === '') {
+    const auto = el('input', { type: 'checkbox' });
+    auto.checked = !led || !!led.auto;
+    auto.addEventListener('change', () => { ensure().auto = auto.checked; markDirty(); });
+    const bright = el('input', { type: 'number', min: 1, max: 100, value: (led && led.brightness) || 45, style: 'width:5em' });
+    bright.addEventListener('change', () => { ensure().brightness = Math.max(1, Math.min(100, +bright.value || 45)); markDirty(); });
+    rows.push(el('div', { class: 'row' },
+      el('label', {}, auto, ' ', L('App chưa có màu: lấy màu đặc trưng của app, hoặc một màu cố định theo tên', 'Apps without a colour: their brand colour, or a fixed colour from their name')),
+    ));
+    rows.push(el('div', { class: 'row' }, el('span', { text: L('Độ sáng đèn (1–100)', 'Light brightness (1–100)') }), bright));
+    const green = el('input', { type: 'number', min: 30, max: 100, step: 5, value: Math.round(((led && led.green) || 0.75) * 100), style: 'width:5em' });
+    green.addEventListener('change', () => { ensure().green = Math.max(30, Math.min(100, +green.value || 75)) / 100; markDirty(); });
+    rows.push(el('div', { class: 'row' }, el('span', { text: L('Giảm xanh lá (%) — bù màu xanh của mạch trong núm', 'Green level (%) — offsets the green board inside the knob') }), green));
+  }
+  rows.push(el('p', { class: 'muted small', text: L(
+    'Đèn đổi màu qua Bluetooth khi bạn chuyển app. Đóng phần mềm ANTICATER của hãng, vì nó giữ đèn của núm.',
+    'The lights change over Bluetooth when you switch apps. Close the vendor ANTICATER app: it holds the lights.') }));
+  return el('div', { class: 'card' },
+    el('div', { class: 'card-head' }, el('strong', { text: L('Đèn của núm', 'Knob lights') })),
+    el('div', { class: 'card-body', style: 'flex-direction:column;align-items:stretch' }, rows));
 }
 
 // ---- shortcut recorder ------------------------------------------------------

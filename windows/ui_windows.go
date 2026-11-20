@@ -82,6 +82,9 @@ type uiState struct {
 	Autostart     bool           `json:"autostart"`
 	ConfigPath    string         `json:"configPath"`
 	ConfigRev     int            `json:"configRev"`
+	// LEDColours is the light colour each profile key gets now (RRGGBB, "off",
+	// or "" for no change), including automatic ones, for the settings page.
+	LEDColours map[string]string `json:"ledColours,omitempty"`
 }
 
 type appInfo struct {
@@ -101,6 +104,21 @@ func (uiBackend) State() any {
 			Raw:       rawCount, Recognized: recognizedCount, Swallowed: swallowedCount, Resent: resentCount,
 			Gestures: map[string]int{}, LastEvent: lastEventText, LastRaw: lastRawText,
 			Autostart: autostartEnabled(), ConfigPath: configPath(), ConfigRev: configRev,
+		}
+		if cfg != nil && cfg.LED != nil {
+			st.LEDColours = map[string]string{}
+			keys := []string{"desktop", "settings"}
+			for k := range cfg.Apps {
+				keys = append(keys, k)
+			}
+			for _, a := range runningApps() {
+				keys = append(keys, a.Name)
+			}
+			for _, k := range keys {
+				exe, title, _ := strings.Cut(k, "|")
+				c, _ := cfg.LED.pick(exe, title)
+				st.LEDColours[k] = strings.ToUpper(strings.TrimPrefix(c, "#"))
+			}
 		}
 		if lastKnobMs != 0 {
 			st.KnobAgoMs = int64(tickMs() - lastKnobMs)
@@ -154,6 +172,8 @@ func (uiBackend) Command(name, arg string) (err error) {
 			recentRaw, lastRawText = nil, ""
 		case "diagnostics":
 			writeDiagnostics()
+		case "ledPreview":
+			ledPreview(arg)
 		case "openConfig":
 			shellOpen(configPath())
 		case "openLog":
@@ -206,7 +226,9 @@ func writeConfig(c *Config) error {
 // isUIWindow reports whether a window is the settings page itself, which
 // should not count as "the app the knob is being used in".
 func isUIWindow(exe, title string) bool {
-	return title == uiTitle && !strings.EqualFold(exe, selfExeName())
+	// Its own app window is titled exactly uiTitle; when no Edge or Chrome is
+	// found the page opens as a browser tab, titled "Anticater Knob - <browser>".
+	return (title == uiTitle || strings.HasPrefix(title, uiTitle+" - ")) && !strings.EqualFold(exe, selfExeName())
 }
 
 var enumApps []appInfo

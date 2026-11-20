@@ -203,7 +203,30 @@ cấu hình đang dùng.
 | `language` | `"vi"` hoặc `"en"`; không có thì theo ngôn ngữ hiển thị của Windows |
 | `global` | Hồ sơ mặc định |
 | `apps` | Hồ sơ theo app |
+| `led` | Màu đèn của núm theo app (xem "Đèn của núm" ngay dưới) |
+| `brightness_screens` | `"cursor"` (mặc định): `brightness_up` / `brightness_down` chỉnh màn hình đang có con trỏ; `"all"`: chỉnh mọi màn hình cùng lúc, thanh báo hiện ở màn hình có con trỏ. Đổi trong thẻ "Độ sáng màn hình" của "Mặc định chung" |
 | `_help` | Ghi chú, app bỏ qua |
+
+**Đèn của núm** (`led_windows.go`, `knob-led.ps1`): đèn đổi màu khi app phía trước đổi.
+
+```json
+"led": { "brightness": 45, "auto": true,
+         "apps": { "desktop": "FFFFFF", "explorer.exe": "FFC800", "msedge.exe": "00A7E1", "chrome.exe": "FF0000" } }
+```
+
+- Khoá trong `apps` khớp như khoá hồ sơ (`exe` hoặc `exe|chữ`). `desktop` là màn hình nền của Windows; khi đó `explorer.exe`
+  chỉ còn là cửa sổ File Explorer. `settings` là cửa sổ cài đặt của app này (mặc định cam `FF9124` như logo). Thanh tác vụ và menu Start không đổi màu.
+- Màu là `RRGGBB` hoặc `off`. `brightness` từ 1 đến 100.
+- `green` (0,3 đến 1, mặc định 0,45): mạch trong núm màu xanh lá làm ánh đèn ngả xanh, nên phần xanh lá của màu đậm được nhân với số này.
+  Màu trắng và màu nhạt chỉ giảm một phần xanh lá và giảm thêm một ít xanh dương (đèn đỏ của núm yếu nhất). Các mức này chỉnh theo mắt
+  anh trên núm thật ngày 21/11/2026: trắng gửi `FFBFFF` ra tím, `FFE3FF` ra xanh ngọc, `FFCEB3` ra trắng.
+- `auto: true`: app chưa có màu thì lấy màu đặc trưng của app quen (`brandColours`), còn lại một màu cố định sinh từ tên exe.
+  Không có `auto` thì dùng `global`; `global` trống thì giữ nguyên màu.
+- Sửa trong cửa sổ cài đặt: thẻ "Đèn của núm" ở đầu mỗi hồ sơ. Ở "Mặc định chung" là màu màn hình nền, công tắc tự động và độ sáng.
+- Cách gửi: lệnh của phần mềm ANTICATER chính hãng (đọc từ mã của nó, 21/11/2026), gói 64 byte `03 FD 00 06 R G B độ_sáng bật 00…`,
+  ghi không chờ trả lời vào đặc tính `AE41` của dịch vụ Bluetooth `AE40` trên núm. Chỉ có một màu cho cả núm, không đặt riêng từng đèn.
+  App chạy `knob-led.ps1` bằng Windows PowerShell một lần, ẩn, rồi gửi từng dòng màu qua đầu vào chuẩn. Đã thử với núm thật qua Bluetooth.
+- Phần mềm của hãng đang mở thì nó giữ dịch vụ `AE40` và lệnh màu bị từ chối (log ghi `SharingViolation`). Đóng phần mềm đó.
 
 **Thao tác:** `rotate_left`, `rotate_right`, `press`, `press_rotate_left`, `press_rotate_right`.
 
@@ -277,7 +300,7 @@ Các hằng số nằm đầu `main_windows.go`: `knobWindowMs = 60`, `pendingHo
 | `winapi_windows.go` | Khai báo hàm và cấu trúc Win32 qua `syscall.NewLazyDLL` (không cgo). Tiện ích: `foregroundApp`, `windowApp`, `rawDeviceName`, `sendKey`, `sendWheel`, `sendMouseButton`, `setAutostart`, `shellOpen` |
 | `config_windows.go` | Kiểu `Config`, `Action`; `loadConfig`, `validate`; `matchesDevice` (khớp `VID:PID` trong đường dẫn thiết bị); `resolve` (chọn hành động theo app và tiêu đề) |
 | `actions_windows.go` | Bảng tên phím → mã phím ảo (`namedKeys`, `lookupKey`), `perform` chạy hành động |
-| `brightness_windows.go` | Độ sáng màn hình ngoài qua DDC/CI: `adjustBrightness` xếp yêu cầu, luồng riêng `brightnessWorker` gửi lệnh |
+| `brightness_windows.go` | Độ sáng: màn hình ngoài qua DDC/CI, màn hình tích hợp của laptop qua `\\.\LCD` (`adjustPanel`). `adjustBrightness` xếp yêu cầu, luồng riêng `brightnessWorker` gửi lệnh |
 | `ui_windows.go` | Cầu nối giữa lõi và trang cài đặt: `uiBackend` (trạng thái, đọc/ghi cấu hình, danh sách app, lệnh), `onMain` đưa yêu cầu từ luồng HTTP về luồng chính, `openUI` mở hoặc đưa cửa sổ lên trước, `runningApps` |
 | `lang_windows.go` | Hai ngôn ngữ cho menu khay và thông báo: `L("tiếng Việt", "English")` chọn chuỗi theo ngôn ngữ hiện tại; `setLanguage` |
 | `../ui/ui.go` | Gói dùng chung, không phụ thuộc hệ điều hành: máy chủ HTTP nội bộ, kiểm tra mã truy cập, giao diện `Backend` mà mỗi nền tảng tự cài |
@@ -352,19 +375,40 @@ Hai mã `0x6F` / `0x70` không sinh phím ảo nên hook không thấy (đã ki�
 giữ + xoay). Phím âm lượng thì khác: dịch vụ `hidserv` đổi chúng thành phím qua `SendInput`, nên hook chặn được.
 
 Mã độ sáng do dịch vụ Power của Windows tự đọc thẳng từ thiết bị HID (`umpoext.dll`, "HID brightness device"), song song
-với app. Vì vậy mỗi lần giữ + xoay, Windows hiện biểu tượng độ sáng dù thao tác đã được gán việc khác; trên máy bàn màn hình
-không đổi vì Windows không điều khiển được màn hình ngoài, trên laptop thì màn hình tích hợp đổi độ sáng thật. Từ một app
-thường không chặn được việc này. `umpoext.dll` có đọc chính sách `MixedReality/BrightnessButtonDisabled`
-(`HKLM\SOFTWARE\Microsoft\PolicyManager\default\MixedReality`), nhưng đó là chính sách của HoloLens, chưa thử trên Windows bản thường.
+với app. Vì vậy mỗi lần giữ + xoay, Windows hiện biểu tượng độ sáng dù thao tác đã được gán việc khác, và màn hình tích hợp
+của laptop đổi độ sáng thật. Từ một app thường không chặn được việc này.
 
-Để chỉnh độ sáng **màn hình ngoài**, gán thao tác tới phím `brightness_up` / `brightness_down` (bảng Chọn nhanh, nhóm
-"Màn hình", hoặc mẫu nhanh "Độ sáng màn hình"). App gửi lệnh DDC/CI thẳng tới màn hình qua `dxva2.dll`
-(`brightness_windows.go`), mỗi nấc 5%, áp dụng cho mọi màn hình cùng lúc. Lưu ý:
+**Chính sách `BrightnessButtonDisabled` không dùng được trên Windows thường** (đã đọc mã `umpoext.dll` 10.0.26100.8875,
+21/11/2026). Mỗi lần nhận mã độ sáng, `umpoext.dll` có xem cờ "bỏ qua theo chính sách", nhưng nó chỉ đọc giá trị
+`PolicyManager\Current\Device\MixedReality\BrightnessButtonDisabled` khi `RtlGetDeviceFamilyInfoEnum` trả về 10 (HoloLens).
+Trên máy tính thường (giá trị 3) cờ luôn tắt, đổi registry không có tác dụng.
 
-- Màn hình phải bật DDC/CI trong menu của chính nó. Nếu không màn hình nào nhận lệnh, app báo một lần ở khay.
-- Mỗi lệnh DDC/CI mất khoảng 60 ms cho một màn hình, nên việc này chạy ở luồng riêng và gộp các nấc xoay liên tiếp lại.
-- Windows không hiện thanh độ sáng trên màn hình cho thay đổi kiểu này.
-- Màn hình tích hợp của laptop không nhận DDC/CI; với nó hãy để thao tác là "Hệ điều hành xử lý".
+**Cách chặn: đổi tín hiệu ngay trong núm.** Phần mềm cấu hình của hãng (bản Qt 6 có `ble_helper.exe`, ghi cấu hình qua
+Bluetooth, nhận đời núm `05AC:022C`) cho gán phím cho từng thao tác. Gán:
+
+| Thao tác | Gán thành |
+|---|---|
+| Giữ + xoay phải | F13 |
+| Giữ + xoay trái | Shift + F13 |
+
+App nhận F13 trong hook bàn phím (`knobKeyGesture`): F13 không kèm Shift là `press_rotate_right`, có Shift là
+`press_rotate_left`. Phím F13 bị nuốt cả lúc nhấn lẫn lúc nhả, không tới ứng dụng khác. Bàn phím thường không có F13; nếu
+bàn phím của bạn có F13 thật thì phím đó cũng bị coi là của núm. Muốn trả núm về như cũ, gán lại hai thao tác về
+"tăng độ sáng" / "giảm độ sáng" trong phần mềm của hãng.
+
+**Chỉnh độ sáng theo màn hình đang có con trỏ chuột** (giống macOS): gán thao tác tới `brightness_up` / `brightness_down`
+(bảng Chọn nhanh, nhóm "Màn hình", hoặc mẫu nhanh "Độ sáng màn hình"). Hồ sơ mặc định đã gán giữ + xoay như vậy. Mỗi nấc 5%.
+
+- Màn hình tích hợp của laptop: app nhận ra nó qua `QueryDisplayConfig` (kiểu kết nối nội bộ) và chỉnh qua thiết bị `\\.\LCD`
+  của driver màn hình.
+- Màn hình ngoài: lệnh DDC/CI qua `dxva2.dll`. Màn hình phải bật DDC/CI trong menu của chính nó. Màn hình đang có con trỏ
+  không nhận lệnh thì app báo một lần ở khay.
+- Mỗi lệnh DDC/CI mất khoảng 60 ms, nên việc này chạy ở luồng riêng và gộp các nấc xoay liên tiếp lại.
+- Windows không hiện thanh độ sáng cho thay đổi kiểu này.
+- Đã thử trên ThinkPad P1 Gen 5 với một màn hình ngoài (21/11/2026): cả hai màn hình tăng giảm 5% rồi về đúng mức cũ
+  (`KNOB_TEST_DDC=1 go test ./windows -run Brightness -v`).
+- Nếu núm chưa đổi sang F13 mà vẫn gán `brightness_up` / `brightness_down`, màn hình laptop đổi hai lần mỗi nấc (một lần
+  của Windows, một lần của app) khi con trỏ ở màn hình laptop, và đổi theo Windows cả khi con trỏ ở màn hình ngoài.
 
 ### 9.6 Cửa sổ cài đặt
 
@@ -390,7 +434,7 @@ Theo thứ tự ưu tiên:
 3. Thử cả ba kiểu kết nối (dây, dongle, Bluetooth), vì đường dẫn thiết bị và dạng gói có thể khác nhau.
 4. Nhúng icon vào exe (file `.syso`), thay cho việc đọc icon từ file rời.
 5. Hỏi lại khi đóng cửa sổ cài đặt mà chưa lưu; hiện icon thật của app trong thanh bên.
-6. Độ sáng cho màn hình tích hợp của laptop (WMI hoặc `\.\LCD`), và chọn riêng từng màn hình thay vì tất cả.
+6. Chọn riêng từng màn hình khi chỉnh độ sáng thay vì tất cả. (Màn hình tích hợp của laptop đã chỉnh được qua `\\.\LCD`.)
 7. Ký số file exe để hết cảnh báo SmartScreen.
 
 ## 11. Khắc phục sự cố
