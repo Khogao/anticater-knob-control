@@ -202,7 +202,26 @@ cấu hình đang dùng.
 | `language` | `"vi"` hoặc `"en"`; không có thì theo ngôn ngữ hiển thị của Windows |
 | `global` | Hồ sơ mặc định |
 | `apps` | Hồ sơ theo app |
+| `led` | Màu đèn của núm theo app (xem "Đèn của núm" ngay dưới) |
 | `_help` | Ghi chú, app bỏ qua |
+
+**Đèn của núm** (`led_windows.go`, `knob-led.ps1`): đèn đổi màu khi app phía trước đổi.
+
+```json
+"led": { "brightness": 45, "auto": true,
+         "apps": { "desktop": "FFFFFF", "explorer.exe": "FFC800", "msedge.exe": "00A7E1", "chrome.exe": "FF0000" } }
+```
+
+- Khoá trong `apps` khớp như khoá hồ sơ (`exe` hoặc `exe|chữ`). `desktop` là màn hình nền của Windows; khi đó `explorer.exe`
+  chỉ còn là cửa sổ File Explorer. Thanh tác vụ và menu Start không đổi màu.
+- Màu là `RRGGBB` hoặc `off`. `brightness` từ 1 đến 100.
+- `auto: true`: app chưa có màu thì lấy màu đặc trưng của app quen (`brandColours`), còn lại một màu cố định sinh từ tên exe.
+  Không có `auto` thì dùng `global`; `global` trống thì giữ nguyên màu.
+- Sửa trong cửa sổ cài đặt: thẻ "Đèn của núm" ở đầu mỗi hồ sơ. Ở "Mặc định chung" là màu màn hình nền, công tắc tự động và độ sáng.
+- Cách gửi: lệnh của phần mềm ANTICATER chính hãng (đọc từ mã của nó, 21/11/2026), gói 64 byte `03 FD 00 06 R G B độ_sáng bật 00…`,
+  ghi không chờ trả lời vào đặc tính `AE41` của dịch vụ Bluetooth `AE40` trên núm. Chỉ có một màu cho cả núm, không đặt riêng từng đèn.
+  App chạy `knob-led.ps1` bằng Windows PowerShell một lần, ẩn, rồi gửi từng dòng màu qua đầu vào chuẩn. Đã thử với núm thật qua Bluetooth.
+- Phần mềm của hãng đang mở thì nó giữ dịch vụ `AE40` và lệnh màu bị từ chối (log ghi `SharingViolation`). Đóng phần mềm đó.
 
 **Thao tác:** `rotate_left`, `rotate_right`, `press`, `press_rotate_left`, `press_rotate_right`.
 

@@ -682,7 +682,58 @@ function gestureCard(g) {
 
 function renderEditor() {
   if (!live.editor) return;
-  setKids(live.editor, GESTURES.map(gestureCard));
+  setKids(live.editor, ledCard(), GESTURES.map(gestureCard));
+}
+
+// ledCard edits the colour of the knob's lights for the selected profile
+// (config.led, see windows/led_windows.go). The global profile also holds the
+// desktop colour and the "auto" switch for apps without a colour.
+function ledCard() {
+  if (state && state.platform && state.platform !== 'windows') return null;
+  const led = config.led || null;
+  const key = selected === '' ? 'desktop' : selected;
+  const colour = led && led.apps && led.apps[key];
+  const hex = (c) => '#' + (c && /^[0-9a-f]{6}$/i.test(c) ? c : 'FFFFFF');
+  const ensure = () => {
+    if (!config.led) config.led = { brightness: 45, auto: true, apps: {} };
+    config.led.apps = config.led.apps || {};
+    return config.led;
+  };
+  const pick = el('input', { type: 'color', value: hex(colour) });
+  pick.addEventListener('input', () => {
+    ensure().apps[key] = pick.value.slice(1).toUpperCase();
+    markDirty();
+    renderEditor();
+  });
+  const clear = el('button', {
+    text: selected === '' ? L('Không đổi màu ở màn hình nền', 'No colour on the desktop') : L('Dùng màu tự động', 'Use the automatic colour'),
+    disabled: !colour,
+    onclick: () => { delete ensure().apps[key]; markDirty(); renderEditor(); },
+  });
+  const rows = [
+    el('div', { class: 'row' },
+      el('span', { text: selected === '' ? L('Màu ở màn hình nền', 'Colour on the desktop') : L('Màu khi dùng app này', 'Colour in this app') }),
+      pick,
+      el('span', { class: 'muted small', text: colour ? '#' + colour.toUpperCase() : L('(tự động)', '(automatic)') }),
+      clear),
+  ];
+  if (selected === '') {
+    const auto = el('input', { type: 'checkbox' });
+    auto.checked = !led || !!led.auto;
+    auto.addEventListener('change', () => { ensure().auto = auto.checked; markDirty(); });
+    const bright = el('input', { type: 'number', min: 1, max: 100, value: (led && led.brightness) || 45, style: 'width:5em' });
+    bright.addEventListener('change', () => { ensure().brightness = Math.max(1, Math.min(100, +bright.value || 45)); markDirty(); });
+    rows.push(el('div', { class: 'row' },
+      el('label', {}, auto, ' ', L('App chưa có màu: lấy màu đặc trưng của app, hoặc một màu cố định theo tên', 'Apps without a colour: their brand colour, or a fixed colour from their name')),
+    ));
+    rows.push(el('div', { class: 'row' }, el('span', { text: L('Độ sáng đèn (1–100)', 'Light brightness (1–100)') }), bright));
+  }
+  rows.push(el('p', { class: 'muted small', text: L(
+    'Đèn đổi màu qua Bluetooth khi bạn chuyển app. Đóng phần mềm ANTICATER của hãng, vì nó giữ đèn của núm.',
+    'The lights change over Bluetooth when you switch apps. Close the vendor ANTICATER app: it holds the lights.') }));
+  return el('div', { class: 'card' },
+    el('div', { class: 'card-head' }, el('strong', { text: L('Đèn của núm', 'Knob lights') })),
+    el('div', { class: 'card-body', style: 'flex-direction:column;align-items:stretch' }, rows));
 }
 
 // ---- shortcut recorder ------------------------------------------------------

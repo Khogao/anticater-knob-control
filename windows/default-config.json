@@ -9,9 +9,15 @@
     "every: act only on every Nth tick; use 2 if one detent of your knob fires an action twice.",
     "apps: key is the exe name, or 'exe|text' to match only when the window title contains text.",
     "An app entry only needs the gestures it changes; the rest fall back to global.",
-    "language: \"vi\" or \"en\"; leave it out to follow the Windows display language."
+    "language: \"vi\" or \"en\"; leave it out to follow the Windows display language.",
+    "led: colour of the knob's lights per app (RRGGBB or off), sent over Bluetooth; desktop = the Windows desktop; auto gives other apps their brand colour or a fixed colour from their name. Close the vendor ANTICATER app, it holds the lights."
   ],
   "devices": ["05AC:022C", "514C:8850", "514C:4155"],
+  "led": {
+    "brightness": 45,
+    "auto": true,
+    "apps": { "desktop": "FFFFFF", "explorer.exe": "FFC800", "msedge.exe": "00A7E1", "chrome.exe": "FF0000" }
+  },
   "log": true,
   "global": {
     "rotate_left":        { "type": "passthrough", "description": "Volume down" },

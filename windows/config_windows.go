@@ -31,6 +31,8 @@ type Config struct {
 	Language string                       `json:"language,omitempty"`
 	Global   map[string]Action            `json:"global"`
 	Apps     map[string]map[string]Action `json:"apps"`
+	// LED is the colour of the knob's lights per app (led_windows.go).
+	LED *LEDConfig `json:"led,omitempty"`
 }
 
 var gestureNames = []string{"rotate_left", "rotate_right", "press", "press_rotate_left", "press_rotate_right"}
@@ -72,6 +74,11 @@ func loadConfig() (*Config, error) {
 func (c *Config) validate() error {
 	if len(c.Devices) == 0 {
 		c.Devices = []string{"05AC:022C"}
+	}
+	if c.LED != nil {
+		if err := c.LED.validate(); err != nil {
+			return err
+		}
 	}
 	if c.Language != "" && c.Language != "vi" && c.Language != "en" {
 		return fmt.Errorf("language must be \"vi\" or \"en\", not %q", c.Language)

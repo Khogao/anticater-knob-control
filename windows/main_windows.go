@@ -399,6 +399,7 @@ func housekeeping() {
 		reloadConfig(true)
 	}
 	warnBrightnessOnce()
+	ledHousekeeping()
 	exe, title := foregroundApp()
 	if exe != "" && !strings.EqualFold(exe, "explorer.exe") && !strings.EqualFold(exe, selfExeName()) && !isUIWindow(exe, title) {
 		lastAppExe, lastAppTitle = exe, title
@@ -716,6 +717,8 @@ func main() {
 
 	pSetTimer.Call(hwndMain, timerHousekeeping, 1000, 0)
 	logf("started; config %s", configPath())
+	ledStart()
+	defer ledStop()
 
 	var m msg
 	for {
