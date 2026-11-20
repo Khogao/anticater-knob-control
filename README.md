@@ -148,6 +148,15 @@ stays at 0 while you turn the knob, the app is not receiving input.
   *Modifier* edit mode are unaffected.
 - There is no debounce for rotation.
 
+## Credits
+
+The original macOS app (HID capture, gesture recognition, per-app mappings, the
+diagnostic report) was written by Ian in
+[dreamug/anticater-knob-control](https://github.com/dreamug/anticater-knob-control).
+Every commit up to `1561720` (*Add built-in diagnostic report*) is his and is kept
+unchanged in this history. The English UI, auto-switching, the Windows and Linux apps,
+the web settings page and DDC/CI brightness were added on top in this fork.
+
 ## License
 
 Upstream does not include a license file. This fork adds none; treat the code
