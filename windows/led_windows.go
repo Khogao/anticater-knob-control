@@ -94,6 +94,12 @@ func (l *LEDConfig) colour(exe, title string) string {
 		}
 		return l.line(l.Global)
 	}
+	if lexe == "settings" {
+		if c, ok := l.Apps["settings"]; ok {
+			return l.line(c)
+		}
+		return l.line("FF9124") // the app's logo
+	}
 	best, bestLen := "", -1
 	for key := range l.Apps {
 		name, want, hasTitle := strings.Cut(key, "|")
@@ -316,8 +322,13 @@ func ledUpdate() {
 		return
 	}
 	exe, title := windowApp(hwnd)
-	if exe == "" || strings.EqualFold(exe, selfExeName()) || isUIWindow(exe, title) || shellParts[strings.ToLower(exe)] {
-		return // settings window, Start, search, flyouts: keep the colour of the app before
+	if isUIWindow(exe, title) || strings.EqualFold(exe, selfExeName()) {
+		// This app's own settings window: the orange of its logo, unless the
+		// config gives "settings" a colour.
+		exe = "settings"
+	}
+	if exe == "" || shellParts[strings.ToLower(exe)] {
+		return // Start, search, flyouts: keep the colour of the app before
 	}
 	if strings.EqualFold(exe, "explorer.exe") {
 		switch windowClass(hwnd) {

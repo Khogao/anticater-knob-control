@@ -214,7 +214,7 @@ cấu hình đang dùng.
 ```
 
 - Khoá trong `apps` khớp như khoá hồ sơ (`exe` hoặc `exe|chữ`). `desktop` là màn hình nền của Windows; khi đó `explorer.exe`
-  chỉ còn là cửa sổ File Explorer. Thanh tác vụ và menu Start không đổi màu.
+  chỉ còn là cửa sổ File Explorer. `settings` là cửa sổ cài đặt của app này (mặc định cam `FF9124` như logo). Thanh tác vụ và menu Start không đổi màu.
 - Màu là `RRGGBB` hoặc `off`. `brightness` từ 1 đến 100.
 - `green` (0,3 đến 1, mặc định 0,45): mạch trong núm màu xanh lá làm ánh đèn ngả xanh, nên phần xanh lá của màu đậm được nhân với số này.
   Màu trắng và màu nhạt chỉ giảm một phần xanh lá và giảm thêm một ít xanh dương (đèn đỏ của núm yếu nhất). Các mức này chỉnh theo mắt
