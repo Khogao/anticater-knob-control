@@ -136,14 +136,16 @@ func (l *LEDConfig) lineAt(c string, factor float64) string {
 	}
 	var r, g, b int
 	if _, err := fmt.Sscanf(c, "%02X%02X%02X", &r, &g, &b); err == nil && l.Green > 0 {
-		// Full correction for strong colours, little for white and pale ones:
-		// with the same cut, white turned purple on the test knob.
+		// Full green cut for strong colours, less for white and pale ones, which
+		// also need some blue taken out: on the test knob white sent as FFBFFF
+		// looked purple and as FFE3FF turquoise (its red light is the weakest).
 		sat := 0.0
 		if mx := max(r, g, b); mx > 0 {
 			sat = float64(mx-min(r, g, b)) / float64(mx)
 		}
-		k := l.Green + (1-l.Green)*(1-sat)*0.8
-		c = fmt.Sprintf("%02X%02X%02X", r, int(float64(g)*k+0.5), b)
+		kg := l.Green + (1-l.Green)*(1-sat)*0.65
+		kb := 1 - 0.3*(1-sat)
+		c = fmt.Sprintf("%02X%02X%02X", r, int(float64(g)*kg+0.5), int(float64(b)*kb+0.5))
 	}
 	return fmt.Sprintf("%s %d", c, max(5, int(float64(l.Brightness)*factor+0.5)))
 }
