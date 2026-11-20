@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Anticater Knob wordmark: the app icon (assets/logo.svg) and the project name.
+     Generated from logo.svg; regenerate it after changing the icon. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2040 512" width="1020" height="256">
+  <defs>
+    <linearGradient id="tile-gradient" x1="100" y1="100" x2="924" y2="924" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#3C3C3C"/>
+      <stop offset="1" stop-color="#000000"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(-50,-50) scale(0.6103515625)">
+    <g id="tile">
+    <rect x="100" y="100" width="824" height="824" rx="186" ry="186" fill="url(#tile-gradient)"/>
+  </g>
+    <g id="logo" fill="#FF9124" fill-rule="evenodd">
+    <path d="M222.00,512.00 a290.00,290.00 0 1,0 580.00,0 a290.00,290.00 0 1,0 -580.00,0 Z M633.19,485.91 L735.38,426.91 A38.00,38.00 0 0,0 697.38,361.09 L595.19,420.09 A38.00,38.00 0 0,0 633.19,485.91 Z"/>
+  </g>
+  </g>
+  <text x="560" y="300" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="176" font-weight="700" letter-spacing="-3">
+    <tspan fill="#FF9124">Anticater</tspan><tspan fill="#8A8A8A" font-weight="400"> Knob</tspan>
+  </text>
+</svg>

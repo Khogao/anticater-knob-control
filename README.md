@@ -1,5 +1,7 @@
 # Knob Console
 
+![Anticater Knob](assets/logo-wordmark.svg)
+
 Turns an Anticater VK-01 knob into a per-app shortcut controller on macOS: volume
 everywhere, tab switching in the browser, brush size in Photoshop, and so on.
 
@@ -83,15 +85,16 @@ or
 open build/ANTICATERKnobControl.app
 ```
 
-To give the app an icon, put an `.icns` file at `assets/AppIcon.icns` before building.
-`assets/make-icons.swift` generates it, and the Windows `.ico`, from a vector file at
-`assets/logo.svg`; pass a colour to recolour the mark:
+The app icon is `assets/AppIcon.icns`, bundled by `build-gui.sh`. It and the Windows `.ico`
+are generated from `assets/logo.svg`, an original knob mark drawn for this project (it does
+not use Anticater's own logo). `assets/make-icons.swift` regenerates both; pass a colour to
+recolour the mark:
 
 ```bash
 swift assets/make-icons.swift assets/logo.svg FF9124
 ```
 
-The logo and the generated icons are ignored by git; no icon ships with this repository.
+`assets/logo-wordmark.svg` is the icon with the project name, used at the top of this README.
 
 ## Permissions
 

@@ -29,7 +29,8 @@ Mục lục: 1. Chạy nhanh · 2. Build · 3. Dùng · 4. Checklist thử lần
 Không có file đó thì app dùng icon mặc định của Windows. Icon không được nhúng vào exe, nên file exe trong Explorer
 vẫn hiện icon mặc định. Chép `AnticaterKnob.ico` đi cùng `AnticaterKnob.exe`.
 
-File `.ico` được sinh từ ảnh vector `assets/logo.svg` ở thư mục gốc repo. Đổi màu logo: sửa thuộc tính `fill` của
+File `.ico` có sẵn trong repo, sinh từ ảnh vector `assets/logo.svg` ở thư mục gốc repo: một núm vặn màu cam vẽ riêng
+cho dự án này, không dùng logo của hãng Anticater. Đổi màu logo: sửa thuộc tính `fill` của
 nhóm `id="logo"` trong file SVG, hoặc truyền mã màu khi sinh icon (chạy trên macOS, từ thư mục gốc repo):
 
 ```bash
@@ -37,7 +38,7 @@ swift assets/make-icons.swift assets/logo.svg FF9124
 ```
 
 Lệnh này ghi lại cả `windows/AnticaterKnob.ico` lẫn `assets/AppIcon.icns` (icon bản Mac). Trên Windows chưa có script
-tương đương; có thể mở `logo.svg` bằng Inkscape rồi xuất ra `.ico`. Logo, file `.ico` và `.icns` đều không nằm trong git.
+tương đương; có thể mở `logo.svg` bằng Inkscape rồi xuất ra `.ico`.
 
 ## 2. Build
 
@@ -283,7 +284,7 @@ Các hằng số nằm đầu `main_windows.go`: `knobWindowMs = 60`, `pendingHo
 | `../ui/web/` | Trang cài đặt: `index.html`, `app.css`, `app.js` (bố cục, mẫu nhanh, bảng Chọn nhanh, ghi phím, hai ngôn ngữ) |
 | `../ui/uidev/` | `go run ./ui/uidev` chạy trang với dữ liệu giả lập, để sửa giao diện trên máy bất kỳ mà không cần núm |
 | `default-config.json` | Cấu hình mặc định, nhúng vào exe bằng `//go:embed` |
-| `AnticaterKnob.ico` | Icon, đọc lúc chạy bởi `appIcon()` trong `winapi_windows.go`; sinh từ `../assets/logo.svg`, không nằm trong git |
+| `AnticaterKnob.ico` | Icon, đọc lúc chạy bởi `appIcon()` trong `winapi_windows.go`; sinh từ `../assets/logo.svg` |
 | `build.bat`, `build.sh` | Script build cho Windows và cho macOS/Linux |
 
 Lưu ý khi sửa:
@@ -413,10 +414,11 @@ Mọi thứ dùng trong quá trình làm trên macOS đều có trên ổ này. 
 | Vị trí | Nội dung | Trong git |
 |---|---|---|
 | `Sources/`, `build-gui.sh`, `README.md` | App macOS (Knob Console): mã nguồn, script build, tài liệu tiếng Anh | Có |
-| `windows/` | App Windows này | Có (trừ exe, ico và file sinh ra khi chạy) |
+| `windows/` | App Windows này | Có (trừ exe và file sinh ra khi chạy) |
 | `linux/` | Cấu hình xremap, script cài và hướng dẫn cho Fedora KDE | Có |
-| `assets/logo.svg`, `assets/make-icons.swift` | Logo vector và script sinh icon cho cả hai bản (chạy trên macOS) | Script có, logo không |
-| `assets/AppIcon.icns`, `windows/AnticaterKnob.ico` | Icon đã sinh, màu cam `FF9124` | Không |
+| `assets/logo.svg`, `assets/make-icons.swift` | Logo vector (vẽ riêng cho dự án) và script sinh icon cho cả hai bản (chạy trên macOS) | Có |
+| `assets/logo-wordmark.svg` | Logo kèm chữ "Anticater Knob", dùng ở đầu README | Có |
+| `assets/AppIcon.icns`, `windows/AnticaterKnob.ico` | Icon đã sinh, màu cam `FF9124` | Có |
 | `tools/mac-probes/` | Bốn công cụ chẩn đoán cho macOS đã dùng để tìm lỗi: liệt kê event tap, ghi phím và phím media, so mốc thời gian tín hiệu núm với phím hệ thống, liệt kê cửa sổ của app | Có |
 | `local/app-mapping.mac.json` | Bản sao cấu hình Knob Console đang dùng trên Mac (hồ sơ Chrome, mặc định...) | Không |
 | `local/vendor-AppIcon.icns` | Icon gốc màu xanh của app ANTICATER chính hãng | Không |
