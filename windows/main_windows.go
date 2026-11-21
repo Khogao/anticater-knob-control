@@ -263,6 +263,7 @@ func runGesture(gesture, origin string) {
 	lastKnobMs = tickMs()
 	recognizedCount++
 	gestureCounts[gesture]++
+	ledKick() // the "pulse" light effect
 	exe, title := gestureApp()
 	act, source := cfg.resolve(gesture, exe, title)
 	lastEventText = fmt.Sprintf("%s in %s -> %s", gesture, orDash(exe), describe(act, source))
