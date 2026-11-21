@@ -13,6 +13,11 @@ package main
 // "effect_seconds" sets the length of one breath or one round of the wheel
 // (defaults 4 and 8). Breathe and rainbow send about 12 colours a second;
 // pulse sends a few per turn only.
+//
+// Off by default, and best left off for long: the knob keeps the colour in
+// flash. On 21/11/2026 a colour (12 34 AB) sent without the save packet was
+// still there after the battery was unsoldered and soldered back, so each
+// colour command most likely writes flash, which wears out with writes.
 
 import (
 	"fmt"
