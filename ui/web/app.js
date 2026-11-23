@@ -779,6 +779,29 @@ function ledCard() {
     const green = el('input', { type: 'number', min: 30, max: 100, step: 5, value: Math.round(((led && led.green) || 0.75) * 100), style: 'width:5em' });
     green.addEventListener('change', () => { ensure().green = Math.max(30, Math.min(100, +green.value || 75)) / 100; markDirty(); });
     rows.push(el('div', { class: 'row' }, el('span', { text: L('Giảm xanh lá (%) — bù màu xanh của mạch trong núm', 'Green level (%) — offsets the green board inside the knob') }), green));
+    // Moving effects are made by the app sending colours over and over: the
+    // knob has no light modes of its own (windows/led_effect_windows.go).
+    const effects = [
+      ['', L('Đứng yên', 'Still')],
+      ['breathe', L('Thở (sáng lên tối xuống)', 'Breathe (brighter and dimmer)')],
+      ['rainbow', L('Cầu vồng (đổi màu vòng tròn)', 'Rainbow (round the colour wheel)')],
+      ['pulse', L('Nháy sáng mỗi lần xoay', 'Flash on each turn')],
+    ];
+    const effect = el('select', {}, ...effects.map(([v, t]) => el('option', { value: v, text: t })));
+    effect.value = (led && led.effect) || '';
+    effect.addEventListener('change', () => {
+      const l = ensure();
+      if (effect.value) l.effect = effect.value; else delete l.effect;
+      markDirty();
+    });
+    const secs = el('input', { type: 'number', min: 1, max: 120, step: 1, placeholder: '4 / 8', value: (led && led.effect_seconds) || '', style: 'width:5em' });
+    secs.addEventListener('change', () => {
+      const l = ensure();
+      if (+secs.value > 0) l.effect_seconds = Math.min(120, +secs.value); else delete l.effect_seconds;
+      markDirty();
+    });
+    rows.push(el('div', { class: 'row' }, el('span', { text: L('Hiệu ứng đèn', 'Light effect') }), effect,
+      el('span', { class: 'muted small', text: L('giây mỗi vòng', 'seconds per cycle') }), secs));
   }
   rows.push(el('p', { class: 'muted small', text: L(
     'Đèn đổi màu khi bạn chuyển app. Đóng phần mềm ANTICATER của hãng, vì nó giữ đèn của núm.',

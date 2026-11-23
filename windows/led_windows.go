@@ -49,6 +49,10 @@ type LEDConfig struct {
 	// yellow-green on the test knob.
 	Green  float64           `json:"green,omitempty"`
 	Global string            `json:"global,omitempty"`
+	// Effect is a moving light made by sending colours over and over: "breathe",
+	// "rainbow" or "pulse" (see led_effect_windows.go); empty for a still light.
+	Effect        string  `json:"effect,omitempty"`
+	EffectSeconds float64 `json:"effect_seconds,omitempty"`
 	Apps   map[string]string `json:"apps,omitempty"`
 }
 
@@ -66,6 +70,9 @@ func (l *LEDConfig) validate() error {
 	}
 	if l.Green < 0.3 || l.Green > 1 {
 		return fmt.Errorf("led.green must be 0.3..1, not %v", l.Green)
+	}
+	if err := l.validateEffect(); err != nil {
+		return err
 	}
 	check := func(where, c string) error {
 		if c != "" && !ledColorRe.MatchString(strings.TrimPrefix(c, "#")) {
@@ -379,6 +386,11 @@ func ledUpdate() {
 	if line == "" || line == ledLast {
 		return
 	}
+	if ledSetBase(line) {
+		ledLast = line // the effect loop sends it, again and again
+		logf("led %s for %s, effect %s", line, exe, cfg.LED.Effect)
+		return
+	}
 	if err := ledSend(line); err != nil {
 		logf("led %s for %s: %v", line, exe, err)
 		return
@@ -430,7 +442,12 @@ func ledLaunch() error {
 		sc := bufio.NewScanner(out)
 		for sc.Scan() {
 			ledMu.Lock()
-			ledResults = append(ledResults, sc.Text())
+			if ledPending > 0 {
+				ledPending--
+			}
+			if ledEffect == "" || strings.HasPrefix(sc.Text(), "error") {
+				ledResults = append(ledResults, sc.Text()) // effect frames are not logged
+			}
 			if strings.HasPrefix(sc.Text(), "error") {
 				ledLast = "" // try again on the next change
 			}
