@@ -237,12 +237,12 @@ func openUI() {
 // access token; handing it to the browser as a command-line argument would
 // show it to every local user in the process list.
 func launchPage(url string) (string, error) {
-	dir := filepath.Join(cacheDir(), "launch")
+	path := launchPagePath()
+	dir := filepath.Dir(path)
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return "", err
 	}
 	os.Chmod(dir, 0o700)
-	path := filepath.Join(dir, "settings.html")
 	js, _ := json.Marshal(url)
 	page := "<!doctype html><meta charset=utf-8><title>" + uiTitle + "</title><script>location.replace(" + string(js) + ")</script>"
 	if err := os.WriteFile(path, []byte(page), 0o600); err != nil {
@@ -255,3 +255,5 @@ func launchPage(url string) (string, error) {
 	}()
 	return "file://" + path, nil
 }
+
+func launchPagePath() string { return filepath.Join(cacheDir(), "launch", "settings.html") }

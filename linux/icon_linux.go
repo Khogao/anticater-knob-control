@@ -18,6 +18,7 @@ import (
 	"image/png"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 //go:embed anticater-knob.ico
@@ -121,4 +122,31 @@ func installIcons() error {
 		logf("icons installed in %s", filepath.Join(base, "icons", "hicolor"))
 	}
 	return nil
+}
+
+// settingsWindowClass is the class Chrome gives the settings app window: it is
+// made from the address the window was opened with (the launch page, see
+// launchPage), e.g. chrome-__home_phi_.cache_anticater-knob_launch_settings.html-Default.
+func settingsWindowClass() string {
+	return "chrome-_" + strings.ReplaceAll(launchPagePath(), "/", "_") + "-Default"
+}
+
+// installSettingsEntry writes a hidden desktop entry that ties the settings
+// window's class to the app's icon, so the Plasma taskbar shows the logo for
+// that window instead of a generic browser icon.
+func installSettingsEntry() error {
+	base := os.Getenv("XDG_DATA_HOME")
+	if base == "" {
+		home, _ := os.UserHomeDir()
+		base = filepath.Join(home, ".local", "share")
+	}
+	p := filepath.Join(base, "applications", "anticater-knob-settings.desktop")
+	entry := "[Desktop Entry]\nType=Application\nName=Anticater Knob\nIcon=anticater-knob\nExec=anticater-knob\nNoDisplay=true\nStartupWMClass=" + settingsWindowClass() + "\n"
+	if old, err := os.ReadFile(p); err == nil && string(old) == entry {
+		return nil
+	}
+	if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+		return err
+	}
+	return os.WriteFile(p, []byte(entry), 0o644)
 }

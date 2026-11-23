@@ -550,6 +550,9 @@ func main() {
 	if err := installIcons(); err != nil {
 		logf("icons: %v", err)
 	}
+	if err := installSettingsEntry(); err != nil {
+		logf("settings desktop entry: %v", err)
+	}
 
 	first, err := claimBus()
 	if err != nil {
