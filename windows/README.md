@@ -121,6 +121,11 @@ bố cục theo app macOS. App mở một máy chủ chỉ nghe trên `127.0.0.1
 trang trong cửa sổ Edge chế độ app: không tab, không thanh địa chỉ. Máy không có Edge thì dùng Chrome; không có cả hai
 thì trang mở thành một tab của trình duyệt mặc định. Chạy `AnticaterKnob.exe` lần nữa khi app đang chạy cũng mở cửa sổ này.
 
+Edge chạy với hồ sơ riêng `%LOCALAPPDATA%\AnticaterKnob\SettingsBrowser` (`--user-data-dir`), tách khỏi Edge của người dùng
+và khỏi app web khác trên máy (ví dụ GoDesk). Không có hồ sơ riêng thì mọi cửa sổ `--app=http://127.0.0.1:…` mang cùng mã
+nhận diện taskbar `MSEdge.127.0.0.1_/` (Edge bỏ qua số cổng) và Windows gộp chúng thành một nhóm như một app (thấy trên WS1,
+24/11/2026). Edge của cửa sổ cài đặt nằm trong job của app nên tự đóng khi app thoát; mở exe nhiều lần liền chỉ ra một cửa sổ.
+
 - **Thanh bên:** "Mặc định chung", các app đã có hồ sơ, và "App đang chạy" (bấm một app để tạo hồ sơ cho nó). Bên dưới
   có ô tìm app, nút Làm mới, ô nhập tên exe bằng tay, "Thêm app hiện tại" và "Xoá app đang chọn".
 - **Tên exe / Tiêu đề cửa sổ chứa:** khoá của hồ sơ app. Để trống tiêu đề là áp dụng cho cả app; điền chữ thì chỉ áp dụng
@@ -442,7 +447,8 @@ Theo thứ tự ưu tiên:
 | Triệu chứng | Nguyên nhân thường gặp |
 |---|---|
 | Không thấy biểu tượng ở khay | Nằm trong mũi tên `^`; hoặc app đã thoát vì lỗi khởi động (chạy bản build không có `-H=windowsgui` để xem) |
-| "Already running" | Đã có một bản đang chạy; thoát từ menu khay |
+| "Already running" | Đã có một bản đang chạy; thoát từ menu khay. App chỉ cho một bản chạy trên cả máy (`single_windows.go`): khoá `Global\AnticaterKnobWindows` (mọi phiên đăng nhập) và `Local\AnticaterKnobWindows` (tên của các bản cũ), nên chạy exe ở thư mục khác cũng không ra bản thứ hai. Bản đang chạy bị treo thì app báo, mở Task Manager kết thúc nó |
+| Đèn không đổi màu sau khi app bị tắt ngang | Bản cũ để lại tiến trình `knob-led.ps1`. Từ nay tiến trình này nằm trong một job của Windows và tự chết cùng app |
 | Sửa JSON không có tác dụng | File sai cú pháp: app báo bong bóng và giữ cấu hình cũ. Dùng "Nạp lại cấu hình" để xem lỗi |
 | Hồ sơ app không áp dụng | Tên exe sai. Dùng "Thêm X vào cấu hình" hoặc "Thêm app…" để lấy đúng tên |
 | Hành động chạy hai lần mỗi khấc | Đời núm gửi hai nấc mỗi khấc: đặt `"every": 2` (cột "Mỗi") |

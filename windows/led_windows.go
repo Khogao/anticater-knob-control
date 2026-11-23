@@ -437,6 +437,7 @@ func ledLaunch() error {
 	if err := cmd.Start(); err != nil {
 		return err
 	}
+	tieToApp(cmd)
 	ledIn, ledCmd = in, cmd
 	go func() {
 		sc := bufio.NewScanner(out)
