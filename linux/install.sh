@@ -29,6 +29,8 @@ RULE=/etc/udev/rules.d/60-anticater-knob.rules
     echo "SUBSYSTEM==\"input\", KERNEL==\"event*\", ATTRS{id/vendor}==\"$v\", ATTRS{id/product}==\"$p\", TAG+=\"uaccess\""
     echo "SUBSYSTEM==\"hidraw\", KERNELS==\"*:${v^^}:${p^^}.*\", TAG+=\"uaccess\""
   done
+  # Over Bluetooth LE the knob's input nodes carry ids 0000:0000; match them by name.
+  echo 'SUBSYSTEM=="input", KERNEL=="event*", ATTRS{name}=="ANTICATER*", TAG+="uaccess"'
   echo 'KERNEL=="uinput", SUBSYSTEM=="misc", TAG+="uaccess", OPTIONS+="static_node=uinput"'
 } | sudo tee "$RULE" >/dev/null
 # /dev/uinput only exists once the module is loaded; load it now and at every boot.

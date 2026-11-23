@@ -334,7 +334,7 @@ func scanKnobs() {
 		}
 	}()
 	for _, n := range listEvdev() {
-		if _, open := knobs[n.Path]; open || !cfg.matchesDevice(n.Vendor, n.Product) {
+		if _, open := knobs[n.Path]; open || !cfg.matchesNode(n) {
 			continue
 		}
 		k, err := openKnob(n)
@@ -390,7 +390,7 @@ func reloadConfig() error {
 	logOn.Store(cfg.Log)
 	// Let go of knobs no longer listed in "devices"; their readers end and clean up.
 	for _, k := range knobs {
-		if !cfg.matchesDevice(k.node.Vendor, k.node.Product) {
+		if !cfg.matchesNode(k.node) {
 			k.close()
 		}
 	}

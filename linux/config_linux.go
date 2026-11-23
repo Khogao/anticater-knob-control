@@ -179,6 +179,17 @@ func parseDeviceID(s string) (vid, pid string, ok bool) {
 	return parts[0], parts[1], true
 }
 
+// matchesNode reports whether an input node is a configured knob. Over
+// Bluetooth LE, BlueZ creates the knob's input nodes with vendor and product
+// 0000:0000 (seen on Fedora 44 with a VK-01: "ANTICATER Keyboard" and
+// "ANTICATER Mouse"), so such nodes are recognized by their name instead.
+func (c *Config) matchesNode(n evdevNode) bool {
+	if c.matchesDevice(n.Vendor, n.Product) {
+		return true
+	}
+	return n.Vendor == 0 && n.Product == 0 && strings.HasPrefix(strings.ToUpper(n.Name), "ANTICATER")
+}
+
 // matchesDevice reports whether a vendor/product pair is a configured knob.
 func (c *Config) matchesDevice(vendor, product uint16) bool {
 	want := fmt.Sprintf("%04X:%04X", vendor, product)
