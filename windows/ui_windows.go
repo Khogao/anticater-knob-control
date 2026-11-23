@@ -15,6 +15,7 @@ import (
 	"strings"
 	"sync"
 	"syscall"
+	"time"
 
 	"anticater-knob/ui"
 )
@@ -243,7 +244,11 @@ func enumProc(hwnd, _ uintptr) uintptr {
 		return 1
 	}
 	if isUIWindow(exe, title) {
-		enumUIWindow = hwnd
+		// Raise only the window this copy opened; a same-titled window of
+		// another browser (a stale page, a tab named alike) is left alone.
+		if helperJob == 0 || windowInAppJob(hwnd) {
+			enumUIWindow = hwnd
+		}
 		return 1
 	}
 	for _, a := range enumApps {
@@ -288,18 +293,51 @@ func openUI() {
 			return
 		}
 	}
+	// Several launches of the exe in a row each ask for the settings window
+	// before the first browser window has appeared; open only one.
+	if time.Since(uiLaunchedAt) < 15*time.Second {
+		return
+	}
 	url := uiServer.URL()
 	for _, browser := range appModeBrowsers() {
 		if _, err := os.Stat(browser); err != nil {
 			continue
 		}
-		cmd := exec.Command(browser, "--app="+url, "--window-size=1180,820")
+		// A profile folder of its own makes Edge start a separate browser for
+		// the settings window instead of joining the person's Edge (or another
+		// app's Edge window), so the two never share tabs, sign-ins, extensions
+		// or a "too many windows" state. The browser is tied to this app and
+		// closes when the app quits, so no stale settings window is left behind.
+		args := []string{"--app=" + url, "--window-size=1180,820",
+			"--no-first-run", "--no-default-browser-check", "--disable-sync"}
+		if dir := uiProfileDir(); dir != "" {
+			args = append(args, "--user-data-dir="+dir)
+		}
+		cmd := exec.Command(browser, args...)
 		if err := cmd.Start(); err == nil {
+			uiLaunchedAt = time.Now()
+			tieToApp(cmd)
 			go cmd.Wait()
 			return
 		}
 	}
 	shellOpen(url) // no Edge or Chrome: a tab in the default browser
+}
+
+var uiLaunchedAt time.Time // when openUI last started a browser window
+
+// uiProfileDir is the browser profile used only by the settings window:
+// %LOCALAPPDATA%\AnticaterKnob\SettingsBrowser. "" when it cannot be made.
+func uiProfileDir() string {
+	base := os.Getenv("LOCALAPPDATA")
+	if base == "" {
+		return ""
+	}
+	dir := filepath.Join(base, "AnticaterKnob", "SettingsBrowser")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return ""
+	}
+	return dir
 }
 
 // appModeBrowsers lists Chromium browsers that can show a page as an app

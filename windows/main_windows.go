@@ -678,15 +678,9 @@ func wndProc(hwnd uintptr, message uint32, wParam, lParam uintptr) uintptr {
 func main() {
 	runtime.LockOSThread()
 
-	_, _, lastErr := pCreateMutexW.Call(0, 0, uintptr(unsafe.Pointer(u16("Local\\AnticaterKnobWindows"))))
-	if errno, ok := lastErr.(syscall.Errno); ok && errno == errorAlreadyExists {
+	if !claimSingleInstance() {
 		// Already running: starting the app again opens its settings page.
-		if other, _, _ := pFindWindowW.Call(uintptr(unsafe.Pointer(u16(mainClassName))), 0); other != 0 {
-			pPostMessageW.Call(other, wmShowUI, 0, 0)
-			return
-		}
-		setLanguage("")
-		messageBox("Anticater Knob", L("App đang chạy rồi (tìm biểu tượng ở khay hệ thống).", "Already running (look for the icon in the system tray)."))
+		handOffToRunningCopy()
 		return
 	}
 
