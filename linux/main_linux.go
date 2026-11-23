@@ -20,6 +20,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -47,10 +48,12 @@ var (
 
 	// Modifier keys the knob itself pressed (it holds Shift while it sends F13
 	// for one gesture). They are held back until the key that follows shows
-	// whether they belong to a gesture.
-	knobMods     = map[uint16]bool{} // down, held back
-	knobModsSent = map[uint16]bool{} // down, passed on
-	forwarded    = map[uint16]bool{} // gesture keys passed on (their release must follow)
+	// whether they belong to a gesture, and stay in knobMods until released.
+	knobMods     = map[uint16]bool{} // physically down on the knob
+	knobModsSent = map[uint16]bool{} // down, passed on to the virtual device
+	forwarded    = map[uint16]bool{} // knob keys passed on whose release must follow
+
+	lastTooltip string // tooltip text last shown in the tray
 
 	rawCount, recognizedCount, passedCount int
 	gestureCounts                          = map[string]int{}
@@ -70,10 +73,16 @@ var (
 	logFile *os.File
 )
 
-var logMu sync.Mutex
+var (
+	logMu sync.Mutex
+	// logOn mirrors cfg.Log so logf can be called without mu.
+	logOn atomic.Bool
+)
+
+func init() { logOn.Store(true) }
 
 func logf(format string, args ...any) {
-	if cfg != nil && !cfg.Log {
+	if !logOn.Load() {
 		return
 	}
 	logMu.Lock()
@@ -129,7 +138,7 @@ func gestureForKey(code uint16) string {
 // gestureApp is the app whose profile a gesture uses: the window in front,
 // except the settings window, which counts as no app (global profile).
 func gestureApp() (string, string) {
-	if isUIWindow(fgCaption) {
+	if isUI(fgClass, fgCaption) {
 		return "", ""
 	}
 	return fgClass, fgCaption
@@ -176,26 +185,36 @@ func onKnobKey(e inputEvent) {
 
 	gesture := gestureForKey(code)
 	if gesture == "" || paused {
-		// Not a gesture: pass it on, with any modifiers the knob held.
-		flushKnobMods()
-		out.write([3]int32{evKey, int32(code), e.Value})
-		if down && gesture == "" {
-			logf("knob key %d (not a gesture) passed on", code)
+		// Not a gesture (or paused): pass it on, with any modifiers the knob holds.
+		switch {
+		case down:
+			flushKnobMods()
+			forwarded[code] = true
+			out.key(code, true)
+			if gesture == "" {
+				logf("knob key %d (not a gesture) passed on", code)
+			}
+		case up:
+			delete(forwarded, code)
+			out.key(code, false)
+		default:
+			out.write([3]int32{evKey, int32(code), e.Value})
 		}
 		return
 	}
 
 	switch {
 	case down:
-		// The knob's own modifiers belong to this gesture; drop them.
-		for m := range knobMods {
-			delete(knobMods, m)
-		}
 		if runGesture(gesture, fmt.Sprintf("key %d", code)) {
+			// Passthrough: the knob's key goes on as it came, with its modifiers
+			// (Shift + F13 stays Shift + F13).
+			flushKnobMods()
 			forwarded[code] = true
 			passedCount++
 			out.key(code, true)
 		}
+		// Otherwise the knob's held modifiers belong to this gesture and are not
+		// passed on; they stay in knobMods until the knob releases them.
 	case up:
 		if forwarded[code] {
 			delete(forwarded, code)
@@ -208,12 +227,26 @@ func onKnobKey(e inputEvent) {
 	}
 }
 
+// flushKnobMods passes on the knob's held modifiers that have not been sent yet.
 func flushKnobMods() {
 	for m := range knobMods {
-		delete(knobMods, m)
-		knobModsSent[m] = true
-		out.key(m, true)
+		if !knobModsSent[m] {
+			knobModsSent[m] = true
+			out.key(m, true)
+		}
 	}
+}
+
+// releaseKnobKeys lets go of every key passed on for the knob, so nothing stays
+// held on the virtual device when the knob disconnects. mu is held.
+func releaseKnobKeys() {
+	for k := range forwarded {
+		out.key(k, false)
+	}
+	for m := range knobModsSent {
+		out.key(m, false)
+	}
+	forwarded, knobModsSent, knobMods = map[uint16]bool{}, map[uint16]bool{}, map[uint16]bool{}
 }
 
 // runGesture runs the action for a gesture; it returns true when the gesture
@@ -268,7 +301,7 @@ func orDash(s string) string {
 
 func onActiveWindow(class, caption, kind string) {
 	fgClass, fgCaption, fgKind = class, caption, kind
-	if kind == "normal" && class != "" && !isUIWindow(caption) {
+	if kind == "normal" && class != "" && !isUI(class, caption) {
 		lastAppExe, lastAppTitle = class, caption
 		noteApp(class, caption)
 	}
@@ -276,7 +309,7 @@ func onActiveWindow(class, caption, kind string) {
 }
 
 func noteApp(class, caption string) {
-	if class == "" || isUIWindow(caption) {
+	if class == "" || isUI(class, caption) {
 		return
 	}
 	seenApps[class] = caption
@@ -290,6 +323,16 @@ func noteApp(class, caption string) {
 func scanKnobs() {
 	mu.Lock()
 	defer mu.Unlock()
+	if out == nil {
+		return // without the virtual device a grabbed knob would do nothing at all
+	}
+	added := false
+	defer func() {
+		if added {
+			ledLast = "" // a knob that just connected gets the current colour
+			ledUpdate()
+		}
+	}()
 	for _, n := range listEvdev() {
 		if _, open := knobs[n.Path]; open || !cfg.matchesDevice(n.Vendor, n.Product) {
 			continue
@@ -310,11 +353,15 @@ func scanKnobs() {
 		}
 		delete(knobErrs, n.Path)
 		knobs[n.Path] = k
+		added = true
 		logf("knob %s %q (%04X:%04X) grabbed", n.Path, n.Name, n.Vendor, n.Product)
 		go func() {
 			err := k.run(onKnobEvent)
 			mu.Lock()
 			delete(knobs, k.node.Path)
+			if len(knobs) == 0 {
+				releaseKnobKeys()
+			}
 			mu.Unlock()
 			k.close()
 			logf("knob %s gone: %v", k.node.Path, err)
@@ -340,6 +387,13 @@ func reloadConfig() error {
 	}
 	cfg = c
 	configRev++
+	logOn.Store(cfg.Log)
+	// Let go of knobs no longer listed in "devices"; their readers end and clean up.
+	for _, k := range knobs {
+		if !cfg.matchesDevice(k.node.Vendor, k.node.Product) {
+			k.close()
+		}
+	}
 	setLanguage(cfg.Language)
 	logf("config loaded: %d app entries, devices %v", len(cfg.Apps), cfg.Devices)
 	ledLast = ""
@@ -353,6 +407,14 @@ func housekeeping() {
 		reloadConfig()
 	}
 	ledHousekeeping()
+	// Retry a colour that did not reach the knob, every few seconds.
+	if cfg.LED != nil && ledLast == "" && time.Since(ledTriedAt) > 5*time.Second {
+		ledUpdate()
+	}
+	if lastEventText != lastTooltip {
+		lastTooltip = lastEventText
+		trayRefresh()
+	}
 	mu.Unlock()
 }
 
@@ -493,7 +555,7 @@ func main() {
 		notify("Anticater Knob", L("Không tạo được thiết bị nhập ảo. Chạy install.sh rồi đăng nhập lại.",
 			"Cannot create the virtual input device. Run install.sh, then log out and back in."))
 	}
-	defer out.close()
+	defer func() { out.close() }()
 
 	startWindowWatch()
 	defer stopWindowWatch()
@@ -540,6 +602,14 @@ func main() {
 		case <-tick.C:
 			housekeeping()
 			if time.Since(scanAt) >= scanEvery {
+				if out == nil {
+					if o, err := openUinput(); err == nil {
+						mu.Lock()
+						out = o
+						mu.Unlock()
+						logf("virtual input device created")
+					}
+				}
 				scanKnobs()
 				scanAt = time.Now()
 			}
@@ -548,6 +618,7 @@ func main() {
 				if !kwinScriptLoaded() {
 					startWindowWatch() // KWin restarted, or it failed earlier
 				}
+				trayEnsure() // plasmashell restarted: register the icon again
 			}
 		}
 	}

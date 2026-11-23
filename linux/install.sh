@@ -31,8 +31,12 @@ RULE=/etc/udev/rules.d/60-anticater-knob.rules
   done
   echo 'KERNEL=="uinput", SUBSYSTEM=="misc", TAG+="uaccess", OPTIONS+="static_node=uinput"'
 } | sudo tee "$RULE" >/dev/null
+# /dev/uinput only exists once the module is loaded; load it now and at every boot.
+echo uinput | sudo tee /etc/modules-load.d/anticater-knob-uinput.conf >/dev/null
+sudo modprobe uinput
 sudo udevadm control --reload-rules
 sudo udevadm trigger --subsystem-match=input --subsystem-match=hidraw --subsystem-match=misc
+sudo udevadm settle
 
 echo "3/5 Icon and menu entry..."
 ICON="$HOME/.local/share/icons/hicolor/scalable/apps/anticater-knob.svg"
@@ -50,8 +54,9 @@ Categories=Utility;Settings;
 DESKTOP
 
 echo "4/5 Start with Plasma..."
-mkdir -p "$HOME/.config/autostart"
-cat >"$HOME/.config/autostart/anticater-knob.desktop" <<DESKTOP
+AUTOSTART="${XDG_CONFIG_HOME:-$HOME/.config}/autostart"
+mkdir -p "$AUTOSTART"
+cat >"$AUTOSTART/anticater-knob.desktop" <<DESKTOP
 [Desktop Entry]
 Type=Application
 Name=Anticater Knob

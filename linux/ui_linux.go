@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -206,19 +207,56 @@ func openUI() {
 	}
 	if uiServer.Active() {
 		raiseSettingsWindow()
+		// The page can be polling from a browser tab that is not the selected
+		// one; then there is no window titled for it and nothing came to the
+		// front. Open it again in that case.
+		time.Sleep(1500 * time.Millisecond)
+		mu.Lock()
+		shown := isUI(fgClass, fgCaption)
+		mu.Unlock()
+		if shown {
+			return
+		}
+	}
+	target, err := launchPage(uiServer.URL())
+	if err != nil {
+		logf("settings page: %v", err)
 		return
 	}
-	url := uiServer.URL()
 	for _, b := range []string{"google-chrome", "google-chrome-stable", "chromium", "chromium-browser", "microsoft-edge", "microsoft-edge-stable", "brave-browser"} {
 		path, err := exec.LookPath(b)
 		if err != nil {
 			continue
 		}
-		cmd := exec.Command(path, "--app="+url, "--window-size=1180,820")
+		cmd := exec.Command(path, "--app="+target, "--window-size=1180,820")
 		if err := cmd.Start(); err == nil {
 			go cmd.Wait()
 			return
 		}
 	}
-	shellOpen(url)
+	shellOpen(target)
+}
+
+// launchPage writes a small page that forwards to url, readable only by this
+// user, and returns its file:// address. The page address carries the API's
+// access token; handing it to the browser as a command-line argument would
+// show it to every local user in the process list.
+func launchPage(url string) (string, error) {
+	dir := filepath.Join(cacheDir(), "launch")
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		return "", err
+	}
+	os.Chmod(dir, 0o700)
+	path := filepath.Join(dir, "settings.html")
+	js, _ := json.Marshal(url)
+	page := "<!doctype html><meta charset=utf-8><title>" + uiTitle + "</title><script>location.replace(" + string(js) + ")</script>"
+	if err := os.WriteFile(path, []byte(page), 0o600); err != nil {
+		return "", err
+	}
+	os.Chmod(path, 0o600)
+	go func() { // the browser has read it by then
+		time.Sleep(20 * time.Second)
+		os.Remove(path)
+	}()
+	return "file://" + path, nil
 }

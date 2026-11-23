@@ -22,10 +22,13 @@ Cần Go (`sudo dnf install golang`). Từ thư mục này:
 Script hỏi mật khẩu một lần (sudo) và làm năm việc:
 
 1. Build app vào `~/.local/bin/anticater-knob`.
-2. Ghi luật udev `/etc/udev/rules.d/60-anticater-knob.rules`: cho người đang đăng nhập đọc núm, giữ riêng núm, ghi lệnh đèn
-   và tạo thiết bị nhập ảo. Luật chỉ áp dụng cho mã thiết bị của núm (`05AC:022C`, `514C:8850`, `514C:4155`).
+2. Ghi luật udev `/etc/udev/rules.d/60-anticater-knob.rules` và nạp mô-đun `uinput` (cả khi khởi động máy).
+   - Hai luật cho núm (đọc, giữ riêng, ghi lệnh đèn) chỉ áp dụng cho mã thiết bị của núm (`05AC:022C`, `514C:8850`, `514C:4155`).
+   - Luật thứ ba cho người đang đăng nhập dùng `/dev/uinput` để tạo thiết bị nhập ảo. Luật này **không** giới hạn theo núm:
+     mọi chương trình chạy dưới tên bạn đều tạo được bàn phím/chuột ảo và gửi phím vào mọi cửa sổ. Steam và KDE Connect
+     cũng cấp đúng quyền này (Fedora có sẵn luật của KDE Connect), nên trên nhiều máy quyền này đã có từ trước.
 3. Thêm biểu tượng và mục "Anticater Knob" vào menu ứng dụng.
-4. Cho app tự chạy cùng Plasma (`~/.config/autostart/anticater-knob.desktop`).
+4. Cho app tự chạy cùng Plasma (`~/.config/autostart/anticater-knob.desktop`, hoặc dưới `$XDG_CONFIG_HOME`).
 5. Chạy app.
 
 Không cần đăng xuất. Nếu núm đang cắm từ trước khi chạy script mà app vẫn báo "Chưa giữ được", rút ra cắm lại.
@@ -73,5 +76,5 @@ rm ~/.local/bin/anticater-knob ~/.config/autostart/anticater-knob.desktop ~/.loc
 ```
 
 ```bash
-sudo rm /etc/udev/rules.d/60-anticater-knob.rules
+sudo rm /etc/udev/rules.d/60-anticater-knob.rules /etc/modules-load.d/anticater-knob-uinput.conf
 ```

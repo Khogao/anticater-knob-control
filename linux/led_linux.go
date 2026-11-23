@@ -31,9 +31,17 @@ var (
 	ledPreviewLine string // colour shown while the settings window is in front (mu)
 	ledResults     []string
 	ledVia         string // how the last send went out, for the diagnostic
-	ledQueue       = make(chan string, 1)
+	ledQueue       = make(chan ledJob, 1)
 	ledStarted     bool
+	ledTriedAt     time.Time // last time a colour was queued (mu)
 )
+
+// ledJob is one colour to send, with the configured device ids copied under mu
+// so the worker never reads cfg.
+type ledJob struct {
+	line    string
+	devices []string
+}
 
 // ledPreview handles the settings page's "ledPreview" command; mu is held.
 func ledPreview(arg string) {
@@ -62,7 +70,7 @@ func ledUpdate() {
 	}
 	exe, title := fgClass, fgCaption
 	switch {
-	case isUIWindow(fgCaption):
+	case isUI(fgClass, fgCaption):
 		exe = "settings"
 	case fgKind == "desktop":
 		exe = "desktop"
@@ -77,6 +85,7 @@ func ledUpdate() {
 		return
 	}
 	ledLast = line
+	ledTriedAt = time.Now()
 	logf("led %s for %s", line, exe)
 	if !ledStarted {
 		ledStarted = true
@@ -86,16 +95,18 @@ func ledUpdate() {
 	case <-ledQueue: // drop the older colour still waiting
 	default:
 	}
-	ledQueue <- line
+	ledQueue <- ledJob{line, append([]string(nil), cfg.Devices...)}
 }
 
 func ledWorker() {
-	for line := range ledQueue {
-		via, err := ledSend(line)
+	for job := range ledQueue {
+		via, err := ledSend(job)
 		mu.Lock()
 		if err != nil {
-			ledResults = append(ledResults, "error "+line+": "+err.Error())
-			ledLast = "" // try again on the next change
+			ledResults = append(ledResults, "error "+job.line+": "+err.Error())
+			if ledLast == job.line {
+				ledLast = "" // housekeeping tries again in a few seconds
+			}
 		} else {
 			ledVia = via
 		}
@@ -138,8 +149,8 @@ func ledPacket(line string) ([]byte, error) {
 	return pkt, nil
 }
 
-func ledSend(line string) (string, error) {
-	pkt, err := ledPacket(line)
+func ledSend(job ledJob) (string, error) {
+	pkt, err := ledPacket(job.line)
 	if err != nil {
 		return "", err
 	}
@@ -149,7 +160,7 @@ func ledSend(line string) (string, error) {
 	} else if !errors.Is(err, errNoKnob) {
 		errs = append(errs, err.Error())
 	}
-	if via, err := ledSendHidraw(pkt); err == nil {
+	if via, err := ledSendHidraw(pkt, job.devices); err == nil {
 		return via, nil
 	} else if !errors.Is(err, errNoKnob) {
 		errs = append(errs, err.Error())
@@ -226,17 +237,14 @@ type hidrawNode struct {
 	length int  // bytes to write, report id included
 }
 
-var hidNode *hidrawNode
-
-func ledSendHidraw(pkt []byte) (string, error) {
-	if hidNode == nil {
-		n, err := findHidraw()
-		if err != nil {
-			return "", err
-		}
-		hidNode = n
+// ledSendHidraw looks the node up again on every send (a few small sysfs
+// reads): after a disconnect Linux can give the same /dev/hidrawN to another
+// device, so a remembered path could send the command to the wrong one.
+func ledSendHidraw(pkt []byte, devices []string) (string, error) {
+	n, err := findHidraw(devices)
+	if err != nil {
+		return "", err
 	}
-	n := hidNode
 	buf := make([]byte, n.length)
 	if n.id == pkt[0] {
 		copy(buf, pkt) // the command's 03 is the report id
@@ -246,7 +254,6 @@ func ledSendHidraw(pkt []byte) (string, error) {
 	}
 	f, err := os.OpenFile(n.path, os.O_WRONLY, 0)
 	if err != nil {
-		hidNode = nil
 		if errors.Is(err, os.ErrPermission) {
 			return "", fmt.Errorf("%s: no permission (run install.sh, then unplug and replug the knob)", n.path)
 		}
@@ -255,7 +262,6 @@ func ledSendHidraw(pkt []byte) (string, error) {
 	defer f.Close()
 	f.SetWriteDeadline(time.Now().Add(time.Second))
 	if _, err := f.Write(buf); err != nil {
-		hidNode = nil
 		return "", fmt.Errorf("%s: %v", n.path, err)
 	}
 	return fmt.Sprintf("%s (report %02X, %d bytes)", n.path, n.id, n.length), nil
@@ -263,7 +269,8 @@ func ledSendHidraw(pkt []byte) (string, error) {
 
 // findHidraw picks the knob's hidraw node that has a vendor-defined output
 // report, and that report's id and size, from the HID report descriptor.
-func findHidraw() (*hidrawNode, error) {
+func findHidraw(devices []string) (*hidrawNode, error) {
+	want := &Config{Devices: devices}
 	dirs, _ := filepath.Glob("/sys/class/hidraw/hidraw*")
 	for _, d := range dirs {
 		ue, _ := os.ReadFile(filepath.Join(d, "device", "uevent"))
@@ -273,7 +280,7 @@ func findHidraw() (*hidrawNode, error) {
 				fmt.Sscanf(v, "%x:%x:%x", &bus, &vendor, &product)
 			}
 		}
-		if cfg == nil || !cfg.matchesDevice(uint16(vendor), uint16(product)) {
+		if !want.matchesDevice(uint16(vendor), uint16(product)) {
 			continue
 		}
 		desc, err := os.ReadFile(filepath.Join(d, "device", "report_descriptor"))

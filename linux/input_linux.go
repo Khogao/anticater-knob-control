@@ -59,6 +59,16 @@ func ioctl(fd uintptr, req, arg uintptr) error {
 	return nil
 }
 
+// ioctlPtr passes a pointer argument. The conversion to uintptr is written in
+// the Syscall call itself, the only place where the unsafe.Pointer rules keep
+// the pointed-to memory alive and in place for the kernel.
+func ioctlPtr(fd uintptr, req uintptr, p unsafe.Pointer) error {
+	if _, _, e := syscall.Syscall(syscall.SYS_IOCTL, fd, req, uintptr(p)); e != 0 {
+		return e
+	}
+	return nil
+}
+
 // ---- finding the knob -------------------------------------------------------
 
 type evdevNode struct {
@@ -183,7 +193,7 @@ func openUinput() (*uinputDev, error) {
 	binary.LittleEndian.PutUint16(setup[4:], 0xa71c)
 	binary.LittleEndian.PutUint16(setup[6:], 1)
 	copy(setup[8:88], "Anticater Knob (virtual)")
-	if err := ioctl(fd, uiDevSetup, uintptr(unsafe.Pointer(&setup[0]))); err != nil {
+	if err := ioctlPtr(fd, uiDevSetup, unsafe.Pointer(&setup[0])); err != nil {
 		f.Close()
 		return nil, fmt.Errorf("UI_DEV_SETUP: %v", err)
 	}
@@ -207,7 +217,14 @@ func (u *uinputDev) close() {
 }
 
 // write sends events followed by a SYN_REPORT.
+// testSink, set by tests, receives the events instead of the device.
+var testSink *[][3]int32
+
 func (u *uinputDev) write(evs ...[3]int32) {
+	if testSink != nil {
+		*testSink = append(*testSink, evs...)
+		return
+	}
 	if u == nil {
 		return
 	}

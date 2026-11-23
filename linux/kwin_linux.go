@@ -154,7 +154,7 @@ func kwinScriptLoaded() bool {
 	return err == nil && loaded
 }
 
-var kwinErr string
+var kwinErr string // guarded by mu
 
 // startWindowWatch installs the active-window script. Called again from
 // housekeeping when KWin has lost it (KWin restarted).
@@ -162,7 +162,10 @@ func startWindowWatch() {
 	if bus == nil {
 		return
 	}
-	if err := runKWinScript(kwinScript, kwinScriptJS); err != nil {
+	err := runKWinScript(kwinScript, kwinScriptJS) // a D-Bus round trip: not under mu
+	mu.Lock()
+	defer mu.Unlock()
+	if err != nil {
 		if kwinErr != err.Error() {
 			logf("active window: %v (only the global profile will apply)", err)
 		}
@@ -197,4 +200,11 @@ func raiseSettingsWindow() {
 // window is titled exactly uiTitle; as a browser tab it is "Anticater Knob - Browser".
 func isUIWindow(title string) bool {
 	return title == uiTitle || strings.HasPrefix(title, uiTitle+" - ") || strings.HasPrefix(title, uiTitle+" — ")
+}
+
+// isUI also recognizes the settings window by its class: a Chrome app window is
+// classed after its address (chrome-<address>-Default), and for a moment, while
+// the launch page forwards, its title is not yet uiTitle.
+func isUI(class, title string) bool {
+	return isUIWindow(title) || strings.Contains(class, "anticater-knob_launch") || strings.Contains(class, "127.0.0.1")
 }

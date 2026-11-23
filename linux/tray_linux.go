@@ -3,12 +3,13 @@ package main
 // Icon in the Plasma system tray (StatusNotifierItem over D-Bus). Clicking it,
 // left or right, opens the settings window; everything else (pause, language,
 // start with the system, diagnostics) is on that page. The tooltip shows the
-// last gesture.
+// last gesture (refreshed at most once a second, from housekeeping).
 
 import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/godbus/dbus/v5"
 	"github.com/godbus/dbus/v5/prop"
@@ -87,12 +88,47 @@ func trayStart() {
 		return
 	}
 	trayProps = props
-	err = bus.Object("org.kde.StatusNotifierWatcher", "/StatusNotifierWatcher").
-		Call("org.kde.StatusNotifierWatcher.RegisterStatusNotifierItem", 0, name).Err
-	if err != nil {
-		logf("tray: no system tray to register with: %v", err)
-	}
+	trayName = name
+	trayEnsure()
 }
+
+var (
+	trayName       string
+	trayRegistered bool
+)
+
+// trayEnsure registers the icon with the tray when the tray does not list it:
+// at start, and again from the main loop every few seconds, so the icon comes
+// back after plasmashell restarts or when the tray started after this app.
+func trayEnsure() {
+	if trayProps == nil {
+		return
+	}
+	watcher := bus.Object("org.kde.StatusNotifierWatcher", "/StatusNotifierWatcher")
+	if v, err := watcher.GetProperty("org.kde.StatusNotifierWatcher.RegisteredStatusNotifierItems"); err == nil {
+		if items, ok := v.Value().([]string); ok {
+			for _, it := range items {
+				if it == trayName || strings.HasPrefix(it, trayName+"/") {
+					return
+				}
+			}
+		}
+	}
+	err := watcher.Call("org.kde.StatusNotifierWatcher.RegisterStatusNotifierItem", 0, trayName).Err
+	if err != nil {
+		if trayRegistered || trayErr == "" {
+			logf("tray: no system tray to register with: %v", err)
+		}
+		trayErr, trayRegistered = err.Error(), false
+		return
+	}
+	if !trayRegistered {
+		logf("tray: icon registered")
+	}
+	trayErr, trayRegistered = "", true
+}
+
+var trayErr string
 
 // trayRefresh updates the tooltip; mu is held.
 func trayRefresh() {

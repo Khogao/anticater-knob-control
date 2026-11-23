@@ -9,8 +9,8 @@ package main
 // Keys in "apps" match like profile keys: a window class, or "class|text".
 // "desktop" is the Plasma desktop; "settings" this app's settings window.
 //
-// The colour logic below is copied from windows/led_windows.go; only the way
-// the command reaches the knob differs (ledSend, at the end of this file).
+// The colour logic below is copied from windows/led_windows.go; how the
+// command reaches the knob is in led_linux.go (ledPacket, ledSend).
 
 import (
 	"fmt"
@@ -62,7 +62,7 @@ func (l *LEDConfig) validate() error {
 	return nil
 }
 
-// colour returns the command line for this app, or "" to leave the
+// colour returns the colour line ("RRGGBB brightness" or "off") for this app, or "" to leave the
 // lights as they are.
 func (l *LEDConfig) colour(exe, title string) string {
 	c, factor := l.pick(exe, title)
@@ -113,9 +113,8 @@ func (l *LEDConfig) pick(exe, title string) (string, float64) {
 	return l.Global, 1
 }
 
-func (l *LEDConfig) line(c string) string { return l.lineAt(c, 1) }
-
-// lineAt is the line for knob-led.ps1, with the brightness scaled by factor.
+// lineAt is the colour line that ledPacket turns into the command, with the
+// brightness scaled by factor.
 func (l *LEDConfig) lineAt(c string, factor float64) string {
 	c = strings.ToUpper(strings.TrimPrefix(strings.TrimSpace(c), "#"))
 	switch c {

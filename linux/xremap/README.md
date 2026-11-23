@@ -1,8 +1,10 @@
-# Anticater Knob trên Linux (Fedora KDE)
+# Anticater Knob trên Linux bằng xremap (cách cũ)
 
-Trên Linux không cần viết app riêng: công cụ [xremap](https://github.com/xremap/xremap) đã làm đúng việc này.
-Nó chiếm riêng một thiết bị nhập, đổi phím theo ứng dụng đang mở, và hỗ trợ KDE Plasma trên Wayland.
-Thư mục này chỉ gồm cấu hình cho núm, script cài và hướng dẫn.
+> Đã có app riêng cho Linux, có cửa sổ cài đặt như bản Windows: xem [`../README.md`](../README.md).
+> Thư mục này giữ cách cũ, chỉ dùng file cấu hình. Hai cách không chạy cùng lúc được vì cả hai đều giữ riêng núm.
+
+Công cụ [xremap](https://github.com/xremap/xremap) chiếm riêng một thiết bị nhập, đổi phím theo ứng dụng đang mở,
+và hỗ trợ KDE Plasma trên Wayland. Thư mục này chỉ gồm cấu hình cho núm, script cài và hướng dẫn.
 
 > **Trạng thái (2026-11-14): CHƯA CHẠY THỬ trên Linux.** Cấu hình và script được viết trên macOS dựa theo tài liệu
 > của xremap (bản v0.15.18) và các dữ kiện đã đo về núm. Cú pháp script đã kiểm tra; phần còn lại phải thử trên máy thật.
@@ -149,8 +151,6 @@ sudo rm /etc/udev/rules.d/99-input.rules /etc/modules-load.d/uinput.conf
 sudo gpasswd -d "$USER" input
 ```
 
-## Nếu muốn một app riêng như bản Windows
+## App riêng
 
-Phần lõi của `../windows/` (cấu hình JSON, chọn hành động theo app, bảng tên phím, Chọn nhanh, hai ngôn ngữ) viết bằng Go
-và dùng lại được cho Linux. Phần phải viết mới: đọc núm bằng evdev, gửi phím bằng uinput, lấy cửa sổ đang mở từ KWin,
-và giao diện. Chỉ nên làm khi cần cửa sổ cài đặt giống hai bản kia.
+App riêng cho Linux (cửa sổ cài đặt, đèn, cùng cấu hình với bản Windows) nằm ở [`../`](../README.md).
