@@ -1,156 +1,77 @@
-# Anticater Knob trên Linux (Fedora KDE)
+# Anticater Knob cho Linux (KDE Plasma)
 
-Trên Linux không cần viết app riêng: công cụ [xremap](https://github.com/xremap/xremap) đã làm đúng việc này.
-Nó chiếm riêng một thiết bị nhập, đổi phím theo ứng dụng đang mở, và hỗ trợ KDE Plasma trên Wayland.
-Thư mục này chỉ gồm cấu hình cho núm, script cài và hướng dẫn.
+App cho núm Anticater VK-01 trên Linux: núm tự đổi chức năng theo ứng dụng đang mở, giống bản Windows.
+Dùng chung định dạng cấu hình, năm thao tác và trang cài đặt với bản Windows (`../windows/`, `../ui/`).
+Viết bằng Go, không cần cgo; chỉ dùng thêm thư viện D-Bus `github.com/godbus/dbus/v5`.
 
-> **Trạng thái (2026-11-14): CHƯA CHẠY THỬ trên Linux.** Cấu hình và script được viết trên macOS dựa theo tài liệu
-> của xremap (bản v0.15.18) và các dữ kiện đã đo về núm. Cú pháp script đã kiểm tra; phần còn lại phải thử trên máy thật.
-> Những chỗ chưa chắc được ghi ở mục "Chưa kiểm chứng".
+Cách làm cũ bằng xremap (chỉ file cấu hình, không có cửa sổ cài đặt) vẫn nằm trong [`xremap/`](xremap/).
+Hai cách không chạy cùng lúc được, vì cả hai đều giữ riêng núm; `install.sh` ở đây tự tắt dịch vụ xremap cũ nếu có.
 
-## Khác gì bản Mac và Windows
-
-- **Không cần mẹo chặn phím.** Linux cho xremap chiếm riêng núm, nên phím gốc của núm không lọt ra ngoài.
-- **Những gì không gán lại thì giữ nguyên.** Xoay vẫn là âm lượng, nhấn vẫn là tắt tiếng, nhấn giữ + xoay vẫn là
-  độ sáng, do Plasma xử lý như khi không có xremap.
-- **Không có cửa sổ cài đặt hay Chọn nhanh.** Cấu hình là một file YAML; lưu file là có hiệu lực ngay.
-- **Không gửi được cuộn chuột.** xremap chỉ gửi phím, nên zoom dùng `Ctrl+=` / `Ctrl+-` thay cho Ctrl + cuộn.
+> **Trạng thái (2026-11-23):** đã build và chạy trên Fedora 44, KDE Plasma 6.8 Wayland. Phần nhận biết app đang mở,
+> biểu tượng ở khay, trang cài đặt và thiết bị nhập ảo đã chạy thật trên máy. **Chưa thử với núm thật**, và phần đèn
+> chưa gửi được lần nào (xem mục "Chưa kiểm chứng").
 
 ## Cài đặt
 
-### 1. Cài xremap
-
-Tài liệu của xremap ghi có kho Copr cho Fedora:
-
-```bash
-sudo dnf copr enable blakegardner/xremap
-```
-
-```bash
-dnf search xremap
-```
-
-Cài gói mà lệnh tìm kiếm liệt kê (tên gói và việc đã có bản cho Fedora 44 hay chưa thì mình chưa kiểm tra được):
-
-```bash
-sudo dnf install xremap
-```
-
-Nếu Copr chưa có bản cho Fedora 44, tải file nhị phân từ trang
-[Releases](https://github.com/xremap/xremap/releases/latest) (bản đầy đủ, hỗ trợ mọi môi trường từ v0.15.13),
-giải nén và chép `xremap` vào `~/.local/bin/`. Kiểm tra:
-
-```bash
-xremap --version
-```
-
-### 2. Cắm núm và chạy script cài
-
-Núm phải đang kết nối (dây, dongle hoặc Bluetooth). Từ thư mục này:
+Cần Go (`sudo dnf install golang`). Từ thư mục này:
 
 ```bash
 ./install.sh
 ```
 
-Script làm các việc sau, và hỏi mật khẩu sudo cho hai việc đầu:
+Script hỏi mật khẩu một lần (sudo) và làm năm việc:
 
-1. Thêm bạn vào nhóm `input`.
-2. Tạo `/etc/udev/rules.d/99-input.rules` và `/etc/modules-load.d/uinput.conf`, để nhóm `input` dùng được `/dev/uinput`.
-3. Tìm tên thiết bị của núm theo ID `05ac:022c` trong `/proc/bus/input/devices`.
-4. Chép `config.yml` vào `~/.config/anticater-knob/` (giữ nguyên nếu đã có).
-5. Tạo dịch vụ người dùng `anticater-knob.service`, chỉ chiếm núm, tự chạy cùng phiên Plasma.
+1. Build app vào `~/.local/bin/anticater-knob`.
+2. Ghi luật udev `/etc/udev/rules.d/60-anticater-knob.rules`: cho người đang đăng nhập đọc núm, giữ riêng núm, ghi lệnh đèn
+   và tạo thiết bị nhập ảo. Luật chỉ áp dụng cho mã thiết bị của núm (`05AC:022C`, `514C:8850`, `514C:4155`).
+3. Thêm biểu tượng và mục "Anticater Knob" vào menu ứng dụng.
+4. Cho app tự chạy cùng Plasma (`~/.config/autostart/anticater-knob.desktop`).
+5. Chạy app.
 
-Nếu ổ chứa thư mục này không giữ được quyền thực thi (ổ NTFS), chạy bằng `bash install.sh`.
+Không cần đăng xuất. Nếu núm đang cắm từ trước khi chạy script mà app vẫn báo "Chưa giữ được", rút ra cắm lại.
 
-Núm đời khác ID: `KNOB_VENDOR=514c KNOB_PRODUCT=8850 ./install.sh`.
+## Dùng
 
-### 3. Đăng xuất rồi đăng nhập lại
+- Mở cài đặt: bấm biểu tượng núm ở khay hệ thống, hoặc mở "Anticater Knob" từ menu ứng dụng.
+- Trang cài đặt giống bản Windows. Khác biệt: app được gọi theo **lớp cửa sổ** (window class) thay vì tên file exe,
+  ví dụ `google-chrome`, `firefox`, `org.kde.okular`, `libreoffice-writer`. Mục "App đang chạy" liệt kê các app đã thấy.
+- Thao tác để "Hệ điều hành xử lý" thì phím gốc của núm được gửi tiếp: Plasma đổi âm lượng, tắt tiếng, đổi độ sáng như thường.
+- Cấu hình: `~/.config/anticater-knob/knob-config.json` (lưu từ trang cài đặt, hoặc sửa tay; app tự nạp lại).
+- Log: `~/.config/anticater-knob/knob.log`. Báo cáo chẩn đoán: menu "Công cụ" trong trang cài đặt.
+- Liệt kê thiết bị nhập và mã của chúng: `anticater-knob --list-devices`.
 
-Việc thêm vào nhóm `input` chỉ có hiệu lực sau khi đăng nhập lại (hoặc khởi động lại). Sau đó dịch vụ tự chạy.
+## Cách hoạt động
 
-## Kiểm tra
+| Việc | Cách làm trên Linux | File |
+|---|---|---|
+| Đọc núm | Mở các nút `/dev/input/eventN` có mã của núm và giữ riêng (`EVIOCGRAB`), nên phím gốc của núm không tới app khác | `input_linux.go` |
+| Gửi phím, cuộn, click | Một thiết bị nhập ảo tạo qua `/dev/uinput` ("Anticater Knob (virtual)") | `input_linux.go`, `actions_linux.go` |
+| Biết app đang mở | Một script nhỏ chạy trong KWin báo lớp và tiêu đề cửa sổ đang hoạt động qua D-Bus (Wayland không cho app thường hỏi) | `kwin_linux.go` |
+| Biểu tượng ở khay | StatusNotifierItem qua D-Bus | `tray_linux.go` |
+| Trang cài đặt | Gói `ui` dùng chung, mở bằng Chrome/Edge chế độ app | `ui_linux.go` |
+| Đèn | Lệnh `03 FD 00 06 R G B độ_sáng 01` của hãng: qua Bluetooth (BlueZ, đặc tính `AE41`) hoặc qua USB/dongle (`/dev/hidrawN`) | `led_linux.go`, `ledcolour_linux.go` |
 
-```bash
-systemctl --user status anticater-knob
-```
-
-```bash
-journalctl --user -u anticater-knob -f
-```
-
-| Việc làm | Kỳ vọng |
-|---|---|
-| Xoay núm ở desktop | Âm lượng đổi như bình thường |
-| Nhấn giữ + xoay ở desktop | Độ sáng màn hình đổi (nếu Plasma chỉnh được độ sáng màn hình của bạn) |
-| Mở Chrome hoặc Firefox, nhấn giữ + xoay | Chuyển tab, độ sáng đứng yên |
-| Bấm phím volume trên bàn phím thật | Không bị ảnh hưởng |
-
-## Sửa cấu hình
-
-File đang dùng: `~/.config/anticater-knob/config.yml`. Lưu là xremap tự nạp lại.
-
-Phím núm gửi:
-
-| Thao tác | Tên phím trong xremap |
-|---|---|
-| Xoay trái / phải | `VOLUMEDOWN` / `VOLUMEUP` |
-| Nhấn | `MUTE` (một số đời: `PLAYPAUSE`) |
-| Nhấn giữ + xoay trái / phải | `BRIGHTNESSDOWN` / `BRIGHTNESSUP` |
-
-Một mục cấu hình:
-
-```yaml
-keymap:
-  - name: Okular - xoay để zoom
-    device:
-      only: [ids:0x5ac:0x22c]      # chỉ áp dụng cho núm
-    application:
-      only: [/okular/]             # tên lớp cửa sổ; giữa hai dấu / là biểu thức chính quy
-    remap:
-      VOLUMEUP: C-Equal            # Ctrl+=
-      VOLUMEDOWN: C-Minus          # Ctrl+-
-```
-
-- Phím bổ trợ: `C-` (Ctrl), `Shift-`, `Alt-`, `Super-`; ghép được, ví dụ `C-Shift-Tab`.
-- Bỏ khối `application` để áp dụng ở mọi nơi.
-- Để biết tên lớp của một cửa sổ: xem log bằng lệnh `journalctl` ở trên, đưa cửa sổ đó ra trước rồi xoay núm.
-  xremap in `active window: caption: '...', class: '...'`. Nó chỉ in khi cấu hình có ít nhất một mục dùng `application`.
-- `config.yml` có sẵn ba ví dụ đã chú thích: zoom trong trình xem tài liệu, tua video, chuyển bài.
+Phần chọn màu (`ledcolour_linux.go`) và cấu hình (`config_linux.go`) chép từ bản Windows, sửa chỗ khác nhau.
 
 ## Chưa kiểm chứng
 
-- **Gói trên Copr:** tên gói, và đã có bản cho Fedora 44 chưa.
-- **Tên phím media:** `VOLUMEUP`, `BRIGHTNESSUP`... là tên chuẩn của nhân Linux mà xremap dùng, nhưng trang tài liệu tên phím
-  của xremap không liệt kê riêng chúng. Nếu xremap báo lỗi tên phím, chạy `RUST_LOG=debug xremap ~/.config/anticater-knob/config.yml`
-  rồi xoay núm để xem tên nó in ra.
-- **Tên lớp cửa sổ của trình duyệt** trên Plasma (ví dụ `google-chrome`, `org.mozilla.firefox`); cấu hình dùng biểu thức
-  chính quy rộng để khớp cả hai kiểu.
-- **Tên thiết bị của núm trên Linux** và việc `--device` khớp theo phần đầu của tên. Nếu dịch vụ báo không tìm thấy thiết bị,
-  chạy `xremap --list-devices` và sửa tên trong `~/.config/systemd/user/anticater-knob.service`.
-- **Phát hiện ứng dụng trên Plasma 6:** tài liệu ghi xremap hỗ trợ KDE và phải chạy bằng người dùng thường (không sudo),
-  đúng như dịch vụ ở đây.
-- **Độ sáng màn hình ngoài:** tuỳ Plasma có điều khiển được màn hình của bạn hay không.
+- **Núm thật:** mã phím núm gửi trên Linux. App coi `VOLUMEUP`/`VOLUMEDOWN` là xoay, `MUTE`/`PLAYPAUSE` là nhấn,
+  `BRIGHTNESSUP`/`BRIGHTNESSDOWN` (hoặc `F13`/`Shift+F13`) là nhấn giữ + xoay. Chưa thử bằng núm thật.
+- **Đèn qua USB/dongle:** chọn nút hidraw có báo cáo Output thuộc vùng của nhà sản xuất, ưu tiên mã báo cáo `03`, rồi ghi gói
+  dài đúng kích thước báo cáo (65 byte nếu báo cáo dài 64 byte). Chưa ghi thử lần nào.
+- **Đèn qua Bluetooth:** ghi vào đặc tính `AE41` qua BlueZ. Chưa thử.
+- **Cuộn chuột** bằng thiết bị ảo: gửi cả sự kiện cuộn thường lẫn cuộn độ phân giải cao (120 mỗi nấc).
 
 ## Gỡ cài đặt
 
 ```bash
-systemctl --user disable --now anticater-knob.service
+pkill -x anticater-knob
 ```
 
 ```bash
-rm ~/.config/systemd/user/anticater-knob.service
+rm ~/.local/bin/anticater-knob ~/.config/autostart/anticater-knob.desktop ~/.local/share/applications/anticater-knob.desktop
 ```
 
 ```bash
-sudo rm /etc/udev/rules.d/99-input.rules /etc/modules-load.d/uinput.conf
+sudo rm /etc/udev/rules.d/60-anticater-knob.rules
 ```
-
-```bash
-sudo gpasswd -d "$USER" input
-```
-
-## Nếu muốn một app riêng như bản Windows
-
-Phần lõi của `../windows/` (cấu hình JSON, chọn hành động theo app, bảng tên phím, Chọn nhanh, hai ngôn ngữ) viết bằng Go
-và dùng lại được cho Linux. Phần phải viết mới: đọc núm bằng evdev, gửi phím bằng uinput, lấy cửa sổ đang mở từ KWin,
-và giao diện. Chỉ nên làm khi cần cửa sổ cài đặt giống hai bản kia.

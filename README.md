@@ -32,9 +32,13 @@ the list of unverified points.
 
 ## Linux
 
-[`linux/`](linux/) has an [xremap](https://github.com/xremap/xremap) config, an install
-script and a guide (Vietnamese) for Fedora KDE on Wayland. No custom app is needed there:
-xremap grabs the knob and remaps per application. Not yet run on Linux.
+[`linux/`](linux/) holds a Linux app for KDE Plasma (Wayland or X11), written in Go like
+the Windows app and sharing its config format and settings page: it grabs the knob's input
+nodes, sends actions through a uinput device, learns the active window from a small KWin
+script, and sits in the system tray. Its [README](linux/README.md) (Vietnamese) has the
+install script and the list of unverified points; it has run on Fedora 44 / Plasma 6.8 but
+not yet with a real knob. The earlier config-only route through
+[xremap](https://github.com/xremap/xremap) is kept in [`linux/xremap/`](linux/xremap/).
 
 ## Knobs that enumerate as a keyboard
 

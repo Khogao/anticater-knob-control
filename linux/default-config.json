@@ -1,0 +1,62 @@
+{
+  "_help": [
+    "Gestures: rotate_left, rotate_right, press, press_rotate_left, press_rotate_right.",
+    "Action types: passthrough (Plasma handles the knob's own key: volume / mute / brightness), shortcut, scroll, mouse, shell, noop.",
+    "shortcut keys: ctrl shift alt win + a letter/digit/f1..f24/left/right/up/down/enter/esc/space/tab/[ ] - = , . / and media names",
+    "  (volume_up volume_down mute play_pause next_track previous_track brightness_up brightness_down). 'command'/'cmd' is treated as ctrl.",
+    "scroll: dy > 0 scrolls up, dx > 0 scrolls right; optional keys are held while scrolling (ctrl = zoom).",
+    "every: act only on every Nth tick; use 2 if one detent of your knob fires an action twice.",
+    "apps: key is the window class KWin reports (google-chrome, firefox, org.kde.okular...), or 'class|text' to match only when the window title contains text.",
+    "  The settings window lists the apps it has seen under 'Discovered apps'.",
+    "An app entry only needs the gestures it changes; the rest fall back to global.",
+    "language: \"vi\" or \"en\"; leave it out to follow the system language.",
+    "led: colour of the knob's lights per app (RRGGBB or off); desktop = the Plasma desktop; auto gives other apps their brand colour or a fixed colour from their name. Close the vendor ANTICATER app, it holds the lights."
+  ],
+  "devices": ["05AC:022C", "514C:8850", "514C:4155"],
+  "led": {
+    "brightness": 45,
+    "auto": true,
+    "green": 0.45,
+    "apps": { "desktop": "FFFFFF", "org.kde.dolphin": "FFC800", "microsoft-edge": "00A7E1", "google-chrome": "FF0000" }
+  },
+  "log": true,
+  "global": {
+    "rotate_left":        { "type": "passthrough", "description": "Volume down" },
+    "rotate_right":       { "type": "passthrough", "description": "Volume up" },
+    "press":              { "type": "passthrough", "description": "Mute" },
+    "press_rotate_left":  { "type": "passthrough", "description": "Brightness down" },
+    "press_rotate_right": { "type": "passthrough", "description": "Brightness up" }
+  },
+  "apps": {
+    "google-chrome|YouTube": {
+      "press_rotate_left":  { "type": "shortcut", "keys": ["left"], "description": "Back 5 s" },
+      "press_rotate_right": { "type": "shortcut", "keys": ["right"], "description": "Forward 5 s" }
+    },
+    "google-chrome": {
+      "press_rotate_left":  { "type": "shortcut", "keys": ["ctrl", "shift", "tab"], "description": "Previous tab" },
+      "press_rotate_right": { "type": "shortcut", "keys": ["ctrl", "tab"], "description": "Next tab" }
+    },
+    "microsoft-edge": {
+      "press_rotate_left":  { "type": "shortcut", "keys": ["ctrl", "shift", "tab"], "description": "Previous tab" },
+      "press_rotate_right": { "type": "shortcut", "keys": ["ctrl", "tab"], "description": "Next tab" }
+    },
+    "firefox": {
+      "press_rotate_left":  { "type": "shortcut", "keys": ["ctrl", "shift", "tab"], "description": "Previous tab" },
+      "press_rotate_right": { "type": "shortcut", "keys": ["ctrl", "tab"], "description": "Next tab" }
+    },
+    "org.kde.okular": {
+      "rotate_left":  { "type": "scroll", "dy": -1, "keys": ["ctrl"], "description": "Zoom out" },
+      "rotate_right": { "type": "scroll", "dy": 1, "keys": ["ctrl"], "description": "Zoom in" }
+    },
+    "libreoffice-writer": {
+      "rotate_left":  { "type": "scroll", "dy": -1, "keys": ["ctrl"], "description": "Zoom out" },
+      "rotate_right": { "type": "scroll", "dy": 1, "keys": ["ctrl"], "description": "Zoom in" }
+    },
+    "libreoffice-calc": {
+      "rotate_left":        { "type": "scroll", "dy": 1, "description": "Scroll up" },
+      "rotate_right":       { "type": "scroll", "dy": -1, "description": "Scroll down" },
+      "press_rotate_left":  { "type": "scroll", "dx": -1, "description": "Scroll left" },
+      "press_rotate_right": { "type": "scroll", "dx": 1, "description": "Scroll right" }
+    }
+  }
+}

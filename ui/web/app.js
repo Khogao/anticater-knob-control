@@ -7,6 +7,10 @@
 
 let lang = 'en';
 const L = (vi, en) => (lang === 'en' ? en : vi);
+// isLinux: the page is served by the Linux app, where apps are window classes
+// (google-chrome, org.kde.okular) instead of exe names, and the knob is grabbed
+// instead of hooked.
+const isLinux = () => !!(state && state.platform === 'linux');
 
 const GESTURES = [
   { id: 'rotate_left', vi: 'Xoay trái', en: 'Rotate left', icon: '↺' },
@@ -382,7 +386,8 @@ function avatar(name, glyph) {
 function sidebarTools() {
   const manual = el('input', {
     type: 'text', spellcheck: false,
-    placeholder: L('Nhập tên exe, vd. notepad.exe', 'Enter an exe name, e.g. notepad.exe'),
+    placeholder: isLinux() ? L('Nhập tên lớp cửa sổ, vd. org.kde.okular', 'Enter a window class, e.g. org.kde.okular')
+      : L('Nhập tên exe, vd. notepad.exe', 'Enter an exe name, e.g. notepad.exe'),
     onkeydown: (e) => { if (e.key === 'Enter') addManual(); },
   });
   const addManual = () => {
@@ -465,7 +470,7 @@ function renderHeader() {
     exeBox.addEventListener('change', commit);
     titleBox.addEventListener('change', commit);
     rename = el('div', { class: 'bar' },
-      el('label', {}, el('span', { class: 'caption', text: L('Tên exe', 'Exe name') }), exeBox),
+      el('label', {}, el('span', { class: 'caption', text: isLinux() ? L('Lớp cửa sổ (app)', 'Window class (app)') : L('Tên exe', 'Exe name') }), exeBox),
       el('label', {}, el('span', { class: 'caption', text: L('Tiêu đề cửa sổ chứa', 'Window title has') }), titleBox));
   }
 
@@ -511,7 +516,7 @@ function renderHeader() {
       tile(L('Núm', 'Knob'), 'tKnob'),
       tile(L('App phía trước', 'Frontmost app'), 'tFront'),
       tile(L('Hồ sơ đang áp dụng', 'Effective mapping'), 'tEffective'),
-      tile(L('Chặn phím gốc', 'Native key hook'), 'tHook'),
+      tile(isLinux() ? L('Giữ riêng núm', 'Knob grabbed') : L('Chặn phím gốc', 'Native key hook'), 'tHook'),
       tile(L('Tín hiệu gần nhất', 'Last event'), 'tLast')),
     el('div', { class: 'monitor' },
       el('span', { class: 'caption', text: L('Theo dõi tín hiệu', 'Input monitor') }), live.counts, ...pills, live.raw),
@@ -653,7 +658,7 @@ function gestureCard(g) {
         el('option', { value: v, text: L(vi, en), selected: (a.button || 'left').toLowerCase() === v }))))];
       break;
     case 'shell':
-      body = [field(L('Lệnh', 'Command'), textBox(a, 'command', 'notepad.exe'), 'wide')];
+      body = [field(L('Lệnh', 'Command'), textBox(a, 'command', isLinux() ? 'kate' : 'notepad.exe'), 'wide')];
       break;
     case 'noop':
       body = [el('span', { class: 'muted', text: L('Thao tác này bị bỏ qua.', 'This gesture is ignored.') })];
@@ -723,7 +728,7 @@ function previewLight(arg) {
 // (config.led, see windows/led_windows.go). The global profile also holds the
 // desktop colour and the "auto" switch for apps without a colour.
 function ledCard() {
-  if (state && state.platform && state.platform !== 'windows') return null;
+  if (state && state.platform && state.platform !== 'windows' && state.platform !== 'linux') return null;
   const led = config.led || null;
   const key = selected === '' ? 'desktop' : selected;
   const colour = led && led.apps && led.apps[key];
@@ -776,8 +781,8 @@ function ledCard() {
     rows.push(el('div', { class: 'row' }, el('span', { text: L('Giảm xanh lá (%) — bù màu xanh của mạch trong núm', 'Green level (%) — offsets the green board inside the knob') }), green));
   }
   rows.push(el('p', { class: 'muted small', text: L(
-    'Đèn đổi màu qua Bluetooth khi bạn chuyển app. Đóng phần mềm ANTICATER của hãng, vì nó giữ đèn của núm.',
-    'The lights change over Bluetooth when you switch apps. Close the vendor ANTICATER app: it holds the lights.') }));
+    'Đèn đổi màu khi bạn chuyển app. Đóng phần mềm ANTICATER của hãng, vì nó giữ đèn của núm.',
+    'The lights change when you switch apps. Close the vendor ANTICATER app: it holds the lights.') }));
   return el('div', { class: 'card' },
     el('div', { class: 'card-head' }, el('strong', { text: L('Đèn của núm', 'Knob lights') })),
     el('div', { class: 'card-body', style: 'flex-direction:column;align-items:stretch' }, rows));
@@ -878,8 +883,14 @@ function updateLive() {
   setTile('tFront', s.frontApp || '—', s.frontTitle);
   setTile('tEffective', s.effective ? splitKey(s.effective)[0] : L('Mặc định chung', 'Global default'),
     s.effective && splitKey(s.effective)[1] ? L('Tiêu đề chứa: ', 'Title has: ') + splitKey(s.effective)[1] : '');
-  setTile('tHook', s.hookInstalled ? L('Đang bật', 'Installed') : L('Không cài được', 'Failed'),
-    L(`Đã chặn ${s.swallowed} · gửi lại ${s.resent}`, `${s.swallowed} swallowed · ${s.resent} re-sent`), s.hookInstalled ? 'ok' : 'bad');
+  if (s.platform === 'linux') {
+    setTile('tHook', s.hookInstalled ? L('Đang giữ', 'Grabbed') : L('Chưa giữ được', 'Not grabbed'),
+      s.hookInstalled ? L(`App xử lý ${s.swallowed} · để hệ thống xử lý ${s.resent}`, `${s.swallowed} handled · ${s.resent} passed to the system`)
+        : L('Núm chưa kết nối, hoặc chưa chạy install.sh', 'Knob not connected, or install.sh not run yet'), s.hookInstalled ? 'ok' : 'warn');
+  } else {
+    setTile('tHook', s.hookInstalled ? L('Đang bật', 'Installed') : L('Không cài được', 'Failed'),
+      L(`Đã chặn ${s.swallowed} · gửi lại ${s.resent}`, `${s.swallowed} swallowed · ${s.resent} re-sent`), s.hookInstalled ? 'ok' : 'bad');
+  }
   setTile('tLast', s.lastEvent || '—', '');
   live.tLast.title = s.lastEvent || '';
 
