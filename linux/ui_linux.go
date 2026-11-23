@@ -213,6 +213,8 @@ func openUI() {
 			return
 		}
 	}
+	// Windows still open from an earlier run only say "this session is stale"; close them.
+	closeSettingsWindows()
 	target, err := launchPage(uiServer.URL())
 	if err != nil {
 		logf("settings page: %v", err)

@@ -571,6 +571,9 @@ func main() {
 
 	startWindowWatch()
 	defer stopWindowWatch()
+	if background {
+		closeSettingsWindows() // left from the previous run; their access token is gone
+	}
 	trayStart()
 
 	if srv, err := ui.Start(uiBackend{}, uiPort); err == nil {
