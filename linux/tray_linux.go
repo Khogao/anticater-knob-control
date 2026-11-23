@@ -8,7 +8,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/godbus/dbus/v5"
@@ -32,26 +31,15 @@ func (sniItem) Scroll(delta int32, orientation string) *dbus.Error {
 }
 
 type toolTip struct {
-	IconName string
-	Pixmaps  []struct {
-		W, H int32
-		Data []byte
-	}
+	IconName    string
+	Pixmaps     []sniPixmap
 	Title, Text string
 }
 
-func trayToolTip() toolTip {
-	return toolTip{IconName: "anticater-knob", Title: "Anticater Knob", Text: L("Gần nhất: ", "Last: ") + lastEventText}
-}
+var trayIcon = trayPixmaps()
 
-// iconDir holds the app's icon as <dir>/hicolor/scalable/apps/anticater-knob.svg
-// so the tray can find it through IconThemePath without an installed icon.
-func iconDir() string {
-	dir := filepath.Join(cacheDir(), "icons")
-	p := filepath.Join(dir, "hicolor", "scalable", "apps", "anticater-knob.svg")
-	os.MkdirAll(filepath.Dir(p), 0o755)
-	os.WriteFile(p, iconSVG, 0o644)
-	return dir
+func trayToolTip() toolTip {
+	return toolTip{Pixmaps: trayIcon, Title: "Anticater Knob", Text: L("Gần nhất: ", "Last: ") + lastEventText}
 }
 
 func trayStart() {
@@ -69,13 +57,15 @@ func trayStart() {
 	}
 	str := func(v any) *prop.Prop { return &prop.Prop{Value: v, Writable: false, Emit: prop.EmitTrue} }
 	props, err := prop.Export(bus, sniPath, prop.Map{sniIface: {
-		"Category":           str("Hardware"),
-		"Id":                 str("anticater-knob"),
-		"Title":              str("Anticater Knob"),
-		"Status":             str("Active"),
-		"WindowId":           str(int32(0)),
-		"IconName":           str("anticater-knob"),
-		"IconThemePath":      str(iconDir()),
+		"Category": str("Hardware"),
+		"Id":       str("anticater-knob"),
+		"Title":    str("Anticater Knob"),
+		"Status":   str("Active"),
+		"WindowId": str(int32(0)),
+		// The logo goes as pixels; an empty IconName makes the tray use them.
+		"IconName":           str(""),
+		"IconPixmap":         str(trayIcon),
+		"IconThemePath":      str(""),
 		"OverlayIconName":    str(""),
 		"AttentionIconName":  str(""),
 		"AttentionMovieName": str(""),
