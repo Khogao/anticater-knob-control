@@ -17,6 +17,7 @@ import (
 	"image"
 	"image/png"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 )
@@ -140,7 +141,10 @@ func installSettingsEntry() error {
 		home, _ := os.UserHomeDir()
 		base = filepath.Join(home, ".local", "share")
 	}
-	p := filepath.Join(base, "applications", "anticater-knob-settings.desktop")
+	// Named after the window class itself: on Wayland Plasma first looks for a
+	// desktop file whose name is the window's app id.
+	os.Remove(filepath.Join(base, "applications", "anticater-knob-settings.desktop")) // older name
+	p := filepath.Join(base, "applications", settingsWindowClass()+".desktop")
 	entry := "[Desktop Entry]\nType=Application\nName=Anticater Knob\nIcon=anticater-knob\nExec=anticater-knob\nNoDisplay=true\nStartupWMClass=" + settingsWindowClass() + "\n"
 	if old, err := os.ReadFile(p); err == nil && string(old) == entry {
 		return nil
@@ -148,5 +152,15 @@ func installSettingsEntry() error {
 	if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
 		return err
 	}
-	return os.WriteFile(p, []byte(entry), 0o644)
+	if err := os.WriteFile(p, []byte(entry), 0o644); err != nil {
+		return err
+	}
+	// Plasma reads desktop files from a cache; rebuild it so the entry counts now.
+	for _, tool := range []string{"kbuildsycoca6", "kbuildsycoca5"} {
+		if path, err := exec.LookPath(tool); err == nil {
+			exec.Command(path).Run()
+			break
+		}
+	}
+	return nil
 }
