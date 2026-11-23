@@ -125,3 +125,32 @@ func TestPauseKeepsRelease(t *testing.T) {
 		t.Fatalf("events %v", got)
 	}
 }
+
+func TestIcon(t *testing.T) {
+	ims := icoImages()
+	if len(ims) < 5 {
+		t.Fatalf("only %d images in the .ico", len(ims))
+	}
+	px := trayPixmaps()
+	if len(px) == 0 || int(px[0].W*px[0].H*4) != len(px[0].Data) {
+		t.Fatalf("tray pixmaps %d", len(px))
+	}
+}
+
+func TestMatchesNode(t *testing.T) {
+	c := &Config{Devices: []string{"05AC:022C"}}
+	for _, tc := range []struct {
+		n    evdevNode
+		want bool
+	}{
+		{evdevNode{Name: "ANTICATER Keyboard"}, true}, // Bluetooth LE: ids 0000:0000
+		{evdevNode{Name: "ANTICATER Mouse"}, true},
+		{evdevNode{Name: "USB Composite Device", Vendor: 0x05AC, Product: 0x022C}, true},
+		{evdevNode{Name: "Logitech MX Keys", Vendor: 0x046D, Product: 0x408A}, false},
+		{evdevNode{Name: "ANTICATER clone", Vendor: 0x1234, Product: 0x5678}, false},
+	} {
+		if got := c.matchesNode(tc.n); got != tc.want {
+			t.Errorf("%+v: %v", tc.n, got)
+		}
+	}
+}
