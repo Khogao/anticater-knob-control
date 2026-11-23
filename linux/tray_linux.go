@@ -62,8 +62,8 @@ func trayStart() {
 		"Title":    str("Anticater Knob"),
 		"Status":   str("Active"),
 		"WindowId": str(int32(0)),
-		// The logo goes as pixels; an empty IconName makes the tray use them.
-		"IconName":           str(""),
+		// The logo by name (from ~/.local/share/icons) and as pixels.
+		"IconName":           str("anticater-knob"), // installed by installIcons; IconPixmap is the fallback
 		"IconPixmap":         str(trayIcon),
 		"IconThemePath":      str(""),
 		"OverlayIconName":    str(""),

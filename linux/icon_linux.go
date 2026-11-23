@@ -145,7 +145,10 @@ func installSettingsEntry() error {
 	// desktop file whose name is the window's app id.
 	os.Remove(filepath.Join(base, "applications", "anticater-knob-settings.desktop")) // older name
 	p := filepath.Join(base, "applications", settingsWindowClass()+".desktop")
-	entry := "[Desktop Entry]\nType=Application\nName=Anticater Knob\nIcon=anticater-knob\nExec=anticater-knob\nNoDisplay=true\nStartupWMClass=" + settingsWindowClass() + "\n"
+	// The icon by full path: it does not depend on the icon theme cache having
+	// picked up the newly installed logo.
+	icon := filepath.Join(base, "icons", "hicolor", "256x256", "apps", "anticater-knob.png")
+	entry := "[Desktop Entry]\nType=Application\nName=Anticater Knob\nIcon=" + icon + "\nExec=anticater-knob\nNoDisplay=true\nStartupWMClass=" + settingsWindowClass() + "\n"
 	if old, err := os.ReadFile(p); err == nil && string(old) == entry {
 		return nil
 	}
