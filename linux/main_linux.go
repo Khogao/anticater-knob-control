@@ -550,6 +550,9 @@ func main() {
 	if err := installIcons(); err != nil {
 		logf("icons: %v", err)
 	}
+	if err := installSettingsEntry(); err != nil {
+		logf("settings desktop entry: %v", err)
+	}
 
 	first, err := claimBus()
 	if err != nil {
@@ -568,6 +571,9 @@ func main() {
 
 	startWindowWatch()
 	defer stopWindowWatch()
+	if background {
+		closeSettingsWindows() // left from the previous run; their access token is gone
+	}
 	trayStart()
 
 	if srv, err := ui.Start(uiBackend{}, uiPort); err == nil {

@@ -5,6 +5,9 @@ import (
 	"testing"
 )
 
+// Tests must not write to the user's real knob.log.
+func init() { logOn.Store(false) }
+
 func TestLEDPacket(t *testing.T) {
 	p, err := ledPacket("00A7E1 45")
 	if err != nil {

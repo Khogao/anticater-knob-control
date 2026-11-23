@@ -17,7 +17,9 @@ import (
 	"image"
 	"image/png"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 )
 
 //go:embed anticater-knob.ico
@@ -119,6 +121,49 @@ func installIcons() error {
 	os.Remove(filepath.Join(base, "icons", "hicolor", "scalable", "apps", "anticater-knob.svg"))
 	if changed {
 		logf("icons installed in %s", filepath.Join(base, "icons", "hicolor"))
+	}
+	return nil
+}
+
+// settingsWindowClass is the class Chrome gives the settings app window: it is
+// made from the address the window was opened with (the launch page, see
+// launchPage), e.g. chrome-__home_phi_.cache_anticater-knob_launch_settings.html-Default.
+func settingsWindowClass() string {
+	return "chrome-_" + strings.ReplaceAll(launchPagePath(), "/", "_") + "-Default"
+}
+
+// installSettingsEntry writes a hidden desktop entry that ties the settings
+// window's class to the app's icon, so the Plasma taskbar shows the logo for
+// that window instead of a generic browser icon.
+func installSettingsEntry() error {
+	base := os.Getenv("XDG_DATA_HOME")
+	if base == "" {
+		home, _ := os.UserHomeDir()
+		base = filepath.Join(home, ".local", "share")
+	}
+	// Named after the window class itself: on Wayland Plasma first looks for a
+	// desktop file whose name is the window's app id.
+	os.Remove(filepath.Join(base, "applications", "anticater-knob-settings.desktop")) // older name
+	p := filepath.Join(base, "applications", settingsWindowClass()+".desktop")
+	// The icon by full path: it does not depend on the icon theme cache having
+	// picked up the newly installed logo.
+	icon := filepath.Join(base, "icons", "hicolor", "256x256", "apps", "anticater-knob.png")
+	entry := "[Desktop Entry]\nType=Application\nName=Anticater Knob\nIcon=" + icon + "\nExec=anticater-knob\nNoDisplay=true\nStartupWMClass=" + settingsWindowClass() + "\n"
+	if old, err := os.ReadFile(p); err == nil && string(old) == entry {
+		return nil
+	}
+	if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+		return err
+	}
+	if err := os.WriteFile(p, []byte(entry), 0o644); err != nil {
+		return err
+	}
+	// Plasma reads desktop files from a cache; rebuild it so the entry counts now.
+	for _, tool := range []string{"kbuildsycoca6", "kbuildsycoca5"} {
+		if path, err := exec.LookPath(tool); err == nil {
+			exec.Command(path).Run()
+			break
+		}
 	}
 	return nil
 }

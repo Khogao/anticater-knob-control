@@ -65,6 +65,29 @@ const kwinRaiseJS = `workspace.windowList().forEach(function (w) {
 });
 `
 
+// kwinCloseJS closes settings windows: those titled uiTitle, and Chrome app
+// windows opened from the launch page. Used before opening a fresh one, so
+// windows left from an earlier run (whose access token is no longer valid)
+// do not pile up.
+const kwinCloseJS = `workspace.windowList().forEach(function (w) {
+    var c = String(w.caption), k = String(w.resourceClass);
+    if (c === %q || c.indexOf(%q) === 0 || k.indexOf("anticater-knob_launch") >= 0) w.closeWindow();
+});
+`
+
+// closeSettingsWindows closes every open settings window (see kwinCloseJS).
+func closeSettingsWindows() {
+	if bus == nil {
+		return
+	}
+	if err := runKWinScript("anticater-knob-close", fmt.Sprintf(kwinCloseJS, uiTitle, uiTitle+" ")); err != nil {
+		logf("close settings windows: %v", err)
+		return
+	}
+	time.Sleep(300 * time.Millisecond)
+	bus.Object("org.kde.KWin", "/Scripting").Call("org.kde.kwin.Scripting.unloadScript", 0, "anticater-knob-close")
+}
+
 var bus *dbus.Conn
 
 // knobService is the object KWin's script (and a second copy of this app) call.

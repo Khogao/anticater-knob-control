@@ -508,6 +508,9 @@ function renderHeader() {
       el('div', { class: 'title-text' }, el('h1', { text: profileTitle(selected) }), live.front),
       live.pause,
       el('button', { text: L('Nạp lại', 'Reload'), onclick: reload }),
+      // A visible switch, next to Reload (the same setting is also in Listening tools).
+      el('button', { text: lang === 'en' ? 'Tiếng Việt' : 'English', title: L('Đổi ngôn ngữ giao diện', 'Change the interface language'),
+        onclick: () => setLanguage(lang === 'en' ? 'vi' : 'en') }),
       live.save),
     rename);
   setKids(live.dash,
