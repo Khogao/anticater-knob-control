@@ -27,7 +27,7 @@ Script hỏi mật khẩu một lần (sudo) và làm năm việc:
    - Luật thứ ba cho người đang đăng nhập dùng `/dev/uinput` để tạo thiết bị nhập ảo. Luật này **không** giới hạn theo núm:
      mọi chương trình chạy dưới tên bạn đều tạo được bàn phím/chuột ảo và gửi phím vào mọi cửa sổ. Steam và KDE Connect
      cũng cấp đúng quyền này (Fedora có sẵn luật của KDE Connect), nên trên nhiều máy quyền này đã có từ trước.
-3. Thêm biểu tượng và mục "Anticater Knob" vào menu ứng dụng.
+3. Cài logo (cùng logo với bản Windows, `anticater-knob.ico`) vào `~/.local/share/icons` và thêm mục "Anticater Knob" vào menu ứng dụng.
 4. Cho app tự chạy cùng Plasma (`~/.config/autostart/anticater-knob.desktop`, hoặc dưới `$XDG_CONFIG_HOME`).
 5. Chạy app.
 
@@ -50,7 +50,7 @@ Không cần đăng xuất. Nếu núm đang cắm từ trước khi chạy scri
 | Đọc núm | Mở các nút `/dev/input/eventN` có mã của núm và giữ riêng (`EVIOCGRAB`), nên phím gốc của núm không tới app khác | `input_linux.go` |
 | Gửi phím, cuộn, click | Một thiết bị nhập ảo tạo qua `/dev/uinput` ("Anticater Knob (virtual)") | `input_linux.go`, `actions_linux.go` |
 | Biết app đang mở | Một script nhỏ chạy trong KWin báo lớp và tiêu đề cửa sổ đang hoạt động qua D-Bus (Wayland không cho app thường hỏi) | `kwin_linux.go` |
-| Biểu tượng ở khay | StatusNotifierItem qua D-Bus | `tray_linux.go` |
+| Biểu tượng ở khay | StatusNotifierItem qua D-Bus, logo gửi dạng điểm ảnh từ `anticater-knob.ico` | `tray_linux.go`, `icon_linux.go` |
 | Trang cài đặt | Gói `ui` dùng chung, mở bằng Chrome/Edge chế độ app | `ui_linux.go` |
 | Đèn | Lệnh `03 FD 00 06 R G B độ_sáng 01` của hãng: qua Bluetooth (BlueZ, đặc tính `AE41`) hoặc qua USB/dongle (`/dev/hidrawN`) | `led_linux.go`, `ledcolour_linux.go` |
 

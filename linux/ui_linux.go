@@ -14,8 +14,6 @@ import (
 	"strings"
 	"time"
 
-	_ "embed"
-
 	"anticater-knob/ui"
 )
 
@@ -23,9 +21,6 @@ const (
 	uiTitle = "Anticater Knob" // the page's <title>, which is also its window title
 	uiPort  = 47815            // preferred; any free port is used when it is taken
 )
-
-//go:embed anticater-knob.svg
-var iconSVG []byte
 
 var (
 	uiServer *ui.Server
@@ -176,7 +171,7 @@ func (uiBackend) Command(name, arg string) error {
 	return nil
 }
 
-func (uiBackend) Icon() []byte { return nil }
+func (uiBackend) Icon() []byte { return iconICO } // the favicon, which Chrome shows as the window icon
 
 // writeConfig stores c as the config file, indented and without HTML escapes.
 func writeConfig(c *Config) error {

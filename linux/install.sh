@@ -39,9 +39,8 @@ sudo udevadm trigger --subsystem-match=input --subsystem-match=hidraw --subsyste
 sudo udevadm settle
 
 echo "3/5 Icon and menu entry..."
-ICON="$HOME/.local/share/icons/hicolor/scalable/apps/anticater-knob.svg"
-mkdir -p "$(dirname "$ICON")" "$HOME/.local/share/applications"
-cp anticater-knob.svg "$ICON"
+"$BIN" --install-icons   # the logo (same as the Windows app) into ~/.local/share/icons/hicolor
+mkdir -p "$HOME/.local/share/applications"
 cat >"$HOME/.local/share/applications/anticater-knob.desktop" <<DESKTOP
 [Desktop Entry]
 Type=Application

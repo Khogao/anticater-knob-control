@@ -532,6 +532,12 @@ func main() {
 				fmt.Printf("%s  %04X:%04X  %s\n", n.Path, n.Vendor, n.Product, n.Name)
 			}
 			return
+		case "--install-icons":
+			if err := installIcons(); err != nil {
+				fmt.Fprintln(os.Stderr, err)
+				os.Exit(1)
+			}
+			return
 		case "--version", "-h", "--help":
 			fmt.Println("Anticater Knob for Linux. Options: --background (no settings window at start), --list-devices")
 			return
@@ -541,6 +547,9 @@ func main() {
 	mu.Lock()
 	reloadConfig()
 	mu.Unlock()
+	if err := installIcons(); err != nil {
+		logf("icons: %v", err)
+	}
 
 	first, err := claimBus()
 	if err != nil {

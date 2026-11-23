@@ -125,3 +125,14 @@ func TestPauseKeepsRelease(t *testing.T) {
 		t.Fatalf("events %v", got)
 	}
 }
+
+func TestIcon(t *testing.T) {
+	ims := icoImages()
+	if len(ims) < 5 {
+		t.Fatalf("only %d images in the .ico", len(ims))
+	}
+	px := trayPixmaps()
+	if len(px) == 0 || int(px[0].W*px[0].H*4) != len(px[0].Data) {
+		t.Fatalf("tray pixmaps %d", len(px))
+	}
+}
